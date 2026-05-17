@@ -38,10 +38,14 @@ public class SecurityConfig {
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; " +
                                         "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
-                                        "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; " +
+                                        "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; " +
                                         "img-src 'self' data:; " +
-                                        "frame-ancestors 'none'"))
+                                        "frame-ancestors 'none'; " +
+                                        "form-action 'self' https:; " +
+                                        "base-uri 'self'; " +
+                                        "object-src 'none'"))
                         .referrerPolicy(ref -> ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .permissionsPolicyHeader(p -> p.policy("geolocation=(), microphone=(), camera=()"))
                 );
 
         return http.build();

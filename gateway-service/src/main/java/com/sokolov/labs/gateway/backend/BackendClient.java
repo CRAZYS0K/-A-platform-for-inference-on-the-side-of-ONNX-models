@@ -2,6 +2,7 @@ package com.sokolov.labs.gateway.backend;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.InputStreamResource;
@@ -32,7 +33,16 @@ public class BackendClient {
 
     public BackendClient(@Value("${backend.base-url}") String baseUrl,
                          OAuth2AuthorizedClientService authorizedClientService) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        this.restClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestInterceptor((request, body, execution) -> {
+                    String correlationId = MDC.get("correlationId");
+                    if (correlationId != null) {
+                        request.getHeaders().add("X-Correlation-Id", correlationId);
+                    }
+                    return execution.execute(request, body);
+                })
+                .build();
         this.authorizedClientService = authorizedClientService;
     }
 
@@ -60,6 +70,39 @@ public class BackendClient {
 
     public void deleteDataset(UUID id) {
         deleteResource("/api/datasets/" + id);
+    }
+
+    public List<TaskDto> listTasks() {
+        return get("/api/tasks?size=50", new ParameterizedTypeReference<Page<TaskDto>>() {}).content();
+    }
+
+    public TaskDto createTask(UUID modelId, UUID datasetId) {
+        return restClient.post()
+                .uri("/api/tasks")
+                .header("Authorization", "Bearer " + accessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("modelId", modelId, "datasetId", datasetId))
+                .retrieve()
+                .body(TaskDto.class);
+    }
+
+    public NotificationPrefsDto getNotificationPrefs() {
+        return get("/api/me/notifications", new ParameterizedTypeReference<NotificationPrefsDto>() {});
+    }
+
+    public NotificationPrefsDto updateNotificationPrefs(boolean emailEnabled,
+                                                       boolean telegramEnabled,
+                                                       String telegramChatId) {
+        return restClient.put()
+                .uri("/api/me/notifications")
+                .header("Authorization", "Bearer " + accessToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "emailEnabled", emailEnabled,
+                        "telegramEnabled", telegramEnabled,
+                        "telegramChatId", telegramChatId == null ? "" : telegramChatId))
+                .retrieve()
+                .body(NotificationPrefsDto.class);
     }
 
     private <T> T get(String path, ParameterizedTypeReference<T> typeRef) {
@@ -118,6 +161,17 @@ public class BackendClient {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DatasetDto(UUID id, String name, String kind,
                              long sizeBytes, Integer fileCount, Instant uploadedAt) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record NotificationPrefsDto(boolean emailEnabled, boolean telegramEnabled, String telegramChatId) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TaskDto(UUID id, UUID modelId, UUID datasetId, String status,
+                          int progressPct, String errorMessage,
+                          java.math.BigDecimal accuracy,
+                          Instant createdAt, Instant startedAt, Instant finishedAt) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

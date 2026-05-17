@@ -10,6 +10,11 @@ spring:
       max-file-size: 500MB
       max-request-size: 600MB
       file-size-threshold: 10MB
+    session:
+      cookie:
+        http-only: true
+        secure: ${COOKIE_SECURE:false}
+        same-site: lax
 
   data:
     redis:
@@ -42,6 +47,12 @@ spring:
 server:
   port: 8080
   forward-headers-strategy: framework
+
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  capacity: ${RATE_LIMIT_CAPACITY:60}
+  refill-tokens: ${RATE_LIMIT_REFILL:60}
+  refill-period: ${RATE_LIMIT_PERIOD:PT1M}
 
 backend:
   base-url: ${BACKEND_BASE_URL:http://backend-service:8081}

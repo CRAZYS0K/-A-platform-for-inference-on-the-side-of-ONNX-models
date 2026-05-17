@@ -8,5 +8,7 @@
     <include file="db/changelog/changes/001-create-users.xml"/>
     <include file="db/changelog/changes/002-create-models.xml"/>
     <include file="db/changelog/changes/003-create-datasets.xml"/>
+    <include file="db/changelog/changes/004-create-tasks.xml"/>
+    <include file="db/changelog/changes/005-create-notification-prefs.xml"/>
 
 </databaseChangeLog>

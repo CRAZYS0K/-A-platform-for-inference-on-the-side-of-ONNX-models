@@ -10,6 +10,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
@@ -19,6 +21,7 @@ public abstract class IntegrationTestBase {
     static final PostgreSQLContainer<?> POSTGRES;
     static final KeycloakContainer KEYCLOAK;
     static final GenericContainer<?> MINIO;
+    static final KafkaContainer KAFKA;
 
     static final String MINIO_USER = "minioadmin";
     static final String MINIO_PASSWORD = "minioadmin";
@@ -37,13 +40,16 @@ public abstract class IntegrationTestBase {
                     .withCommand("server", "/data")
                     .withExposedPorts(9000)
                     .waitingFor(Wait.forHttp("/minio/health/ready").forPort(9000));
+            KAFKA = new KafkaContainer(DockerImageName.parse("apache/kafka:3.8.0"));
             POSTGRES.start();
             KEYCLOAK.start();
             MINIO.start();
+            KAFKA.start();
         } else {
             POSTGRES = null;
             KEYCLOAK = null;
             MINIO = null;
+            KAFKA = null;
         }
     }
 
@@ -74,6 +80,9 @@ public abstract class IntegrationTestBase {
             registry.add("minio.access-key", () -> MINIO_USER);
             registry.add("minio.secret-key", () -> MINIO_PASSWORD);
             registry.add("minio.bucket", () -> "onnxi-test");
+        }
+        if (KAFKA != null) {
+            registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
         }
     }
 

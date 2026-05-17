@@ -31,6 +31,24 @@ spring:
           jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost/auth/realms/onnxi/protocol/openid-connect/certs}
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost/auth/realms/onnxi}
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: onnxi-backend
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.value.default.type: com.sokolov.labs.shared.dto.InferenceStatusMessage
+        spring.json.trusted.packages: com.sokolov.labs.shared.dto
+        spring.json.use.type.headers: false
+
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}

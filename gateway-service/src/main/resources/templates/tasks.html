@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Задачи')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: flash}"></div>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+<main class="container py-4">
+    <h1>Задачи инференса</h1>
+
+    <form class="card card-body mb-4" method="post" th:action="@{/tasks}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Модель</label>
+                <select name="modelId" required class="form-select">
+                    <option th:each="m : ${models}" th:value="${m.id}" th:text="${m.name}"></option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Датасет</label>
+                <select name="datasetId" required class="form-select">
+                    <option th:each="d : ${datasets}" th:value="${d.id}"
+                            th:text="${d.name} + ' (' + ${d.kind} + ')'"></option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Запустить</button>
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Статус</th>
+            <th>Прогресс</th>
+            <th>Accuracy</th>
+            <th>Создана</th>
+            <th>Завершена</th>
+        </tr>
+        </thead>
+        <tbody th:fragment="rows"
+               hx-get="/tasks/rows"
+               hx-trigger="every 3s"
+               hx-swap="outerHTML">
+        <tr th:each="t : ${tasks}">
+            <td><code th:text="${#strings.substring(t.id.toString(), 0, 8)}">id</code></td>
+            <td>
+                <span class="badge"
+                      th:classappend="${t.status == 'SUCCEEDED' ? 'bg-success' :
+                                       (t.status == 'FAILED' ? 'bg-danger' :
+                                       (t.status == 'RUNNING' ? 'bg-info' : 'bg-secondary'))}"
+                      th:text="${t.status}">status</span>
+            </td>
+            <td>
+                <div class="progress" style="width: 120px;">
+                    <div class="progress-bar" th:style="'width: ' + ${t.progressPct} + '%;'"
+                         th:text="${t.progressPct} + '%'">0%</div>
+                </div>
+                <small class="text-muted" th:if="${t.errorMessage}" th:text="${t.errorMessage}"></small>
+            </td>
+            <td th:text="${t.accuracy} != null ? ${#numbers.formatDecimal(t.accuracy, 1, 4)} : '—'">—</td>
+            <td th:text="${#temporals.format(t.createdAt, 'yyyy-MM-dd HH:mm')}">created</td>
+            <td th:text="${t.finishedAt} != null ? ${#temporals.format(t.finishedAt, 'yyyy-MM-dd HH:mm')} : '—'">—</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(tasks)}">
+            <td colspan="6" class="text-muted text-center">Пока нет задач</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

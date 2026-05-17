@@ -2,8 +2,35 @@ spring:
   application:
     name: notification-service
 
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SPRING_MAIL_AUTH:false}
+      mail.smtp.starttls.enable: ${SPRING_MAIL_STARTTLS:false}
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: onnxi-notifications
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.value.default.type: com.sokolov.labs.shared.dto.NotificationEvent
+        spring.json.trusted.packages: com.sokolov.labs.shared.dto
+        spring.json.use.type.headers: false
+
 server:
   port: 8083
+
+notification:
+  email:
+    from: ${NOTIFICATION_EMAIL_FROM:onnxi@localhost}
+  telegram:
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
 
 management:
   endpoints:

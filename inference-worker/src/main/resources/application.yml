@@ -1,11 +1,40 @@
 spring:
   application:
     name: inference-worker
-  main:
-    web-application-type: servlet
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: onnxi-worker
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      max-poll-records: 1
+      properties:
+        spring.json.value.default.type: com.sokolov.labs.shared.dto.InferenceTaskMessage
+        spring.json.trusted.packages: com.sokolov.labs.shared.dto
+        spring.json.use.type.headers: false
 
 server:
   port: 8082
+
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:onnxi}
+
+worker:
+  retry:
+    initial-interval-ms: 2000
+    max-interval-ms: 30000
+    max-elapsed-ms: 120000
 
 management:
   endpoints:

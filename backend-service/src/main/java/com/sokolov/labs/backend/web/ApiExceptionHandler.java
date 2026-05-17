@@ -3,6 +3,7 @@ package com.sokolov.labs.backend.web;
 import com.sokolov.labs.backend.service.DatasetService;
 import com.sokolov.labs.backend.service.ModelService;
 import com.sokolov.labs.backend.service.OnnxValidator;
+import com.sokolov.labs.backend.service.TaskService;
 import com.sokolov.labs.backend.storage.ObjectStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +21,9 @@ public class ApiExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
-    @ExceptionHandler({ModelService.ModelNotFoundException.class, DatasetService.DatasetNotFoundException.class})
+    @ExceptionHandler({ModelService.ModelNotFoundException.class,
+            DatasetService.DatasetNotFoundException.class,
+            TaskService.TaskNotFoundException.class})
     public ResponseEntity<Map<String, Object>> notFound(RuntimeException ex) {
         return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }

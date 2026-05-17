@@ -1,6 +1,7 @@
 package com.sokolov.labs.backend;
 
 import com.sokolov.labs.backend.domain.DatasetRepository;
+import com.sokolov.labs.backend.domain.InferenceTaskRepository;
 import com.sokolov.labs.backend.domain.ModelRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,10 +42,14 @@ class StorageIntegrationTest extends IntegrationTestBase {
     @Autowired
     ModelRepository modelRepository;
 
+    @Autowired
+    InferenceTaskRepository taskRepository;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @BeforeEach
     void clean() {
+        taskRepository.deleteAll();
         datasetRepository.deleteAll();
         modelRepository.deleteAll();
     }
