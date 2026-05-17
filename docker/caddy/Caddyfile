@@ -1,0 +1,51 @@
+# Локальная разработка: Caddy сам выдаёт self-signed сертификат для https://localhost.
+# В первый раз браузер ругнётся — нужно один раз согласиться.
+# В проде заменим на доменное имя — Caddy сам получит сертификат у Let's Encrypt.
+
+{
+    # Внутренний CA Caddy для локальной разработки
+    local_certs
+    admin off
+    auto_https disable_redirects
+}
+
+# Главный домен — gateway + UI
+localhost {
+    tls internal
+
+    encode zstd gzip
+
+    # Жёсткие security headers (дополнение к Spring Security)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        Permissions-Policy        "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+
+    # Keycloak подвешен на /auth/* (KC_HTTP_RELATIVE_PATH=/auth)
+    handle_path /auth/* {
+        reverse_proxy keycloak:8080 {
+            header_up Host {http.request.host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    # MinIO консоль (опционально, для отладки)
+    handle_path /minio/* {
+        reverse_proxy minio:9001
+    }
+
+    # Всё остальное — на gateway-service
+    reverse_proxy gateway-service:8080 {
+        header_up Host {http.request.host}
+        header_up X-Forwarded-Proto https
+    }
+
+    # Лимит на загрузку файлов (модели и датасеты)
+    request_body {
+        max_size 500MB
+    }
+}

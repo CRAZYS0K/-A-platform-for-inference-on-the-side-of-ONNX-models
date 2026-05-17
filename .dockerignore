@@ -1,0 +1,12 @@
+**/target/
+**/.idea/
+**/.git/
+**/.gradle/
+**/.mvn/wrapper/maven-wrapper.jar
+*.iml
+*.log
+.env
+.env.*
+.vscode/
+.claude/
+docker/data/

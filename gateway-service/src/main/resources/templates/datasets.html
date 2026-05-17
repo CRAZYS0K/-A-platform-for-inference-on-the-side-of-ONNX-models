@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Датасеты')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: flash}"></div>
+
+<main class="container py-4">
+    <h1>Датасеты</h1>
+
+    <form class="card card-body mb-4" method="post" enctype="multipart/form-data" th:action="@{/datasets}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Название</label>
+                <input name="name" type="text" required class="form-control" placeholder="mnist-100">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Тип</label>
+                <select name="kind" class="form-select">
+                    <option value="UNLABELED">UNLABELED</option>
+                    <option value="LABELED">LABELED</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">ZIP-архив</label>
+                <input name="file" type="file" accept=".zip" required class="form-control">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Загрузить</button>
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Название</th>
+            <th>Тип</th>
+            <th>Размер</th>
+            <th>Файлов</th>
+            <th>Загружено</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="d : ${datasets}">
+            <td th:text="${d.name}">name</td>
+            <td><span class="badge bg-secondary" th:text="${d.kind}">kind</span></td>
+            <td th:text="${#numbers.formatDecimal(d.sizeBytes / 1024.0, 0, 0)} + ' КБ'">size</td>
+            <td th:text="${d.fileCount}">files</td>
+            <td th:text="${#temporals.format(d.uploadedAt, 'yyyy-MM-dd HH:mm')}">date</td>
+            <td>
+                <form method="post" th:action="@{|/datasets/${d.id}/delete|}" class="d-inline">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <button class="btn btn-sm btn-outline-danger" type="submit"
+                            onclick="return confirm('Удалить датасет?')">Удалить</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(datasets)}">
+            <td colspan="6" class="text-muted text-center">Пока нет загруженных датасетов</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

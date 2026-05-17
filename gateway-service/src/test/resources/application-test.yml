@@ -1,0 +1,27 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
+
+  session:
+    store-type: none
+
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: test-client
+            client-secret: test-secret
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            authorization-uri: http://localhost/realms/onnxi/protocol/openid-connect/auth
+            token-uri: http://localhost/realms/onnxi/protocol/openid-connect/token
+            user-info-uri: http://localhost/realms/onnxi/protocol/openid-connect/userinfo
+            jwk-set-uri: http://localhost/realms/onnxi/protocol/openid-connect/certs
+            user-name-attribute: preferred_username

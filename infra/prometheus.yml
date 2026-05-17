@@ -1,0 +1,29 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: gateway-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['gateway-service:8080']
+
+  - job_name: backend-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['backend-service:8081']
+
+  - job_name: inference-worker
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['inference-worker:8082']
+
+  - job_name: notification-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['notification-service:8083']
+
+  - job_name: keycloak
+    metrics_path: /auth/metrics
+    static_configs:
+      - targets: ['keycloak:8080']

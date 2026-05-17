@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Главная')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-5">
+    <h1 th:text="${serviceName}">ONNXI Gateway</h1>
+    <p class="lead">Платформа для инференса ONNX-моделей.</p>
+    <p sec:authorize="isAuthenticated()">
+        Вы вошли как <strong sec:authentication="name">user</strong>.
+        Перейдите в <a href="/models">модели</a> или <a href="/datasets">датасеты</a>.
+    </p>
+    <p sec:authorize="!isAuthenticated()">
+        Чтобы загружать модели и датасеты, <a href="/oauth2/authorization/keycloak">войдите</a>.
+    </p>
+</main>
+</body>
+</html>

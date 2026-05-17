@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: inference-worker
+  main:
+    web-application-type: servlet
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.sokolov.labs: DEBUG

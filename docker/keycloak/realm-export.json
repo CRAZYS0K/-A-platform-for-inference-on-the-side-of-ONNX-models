@@ -1,0 +1,40 @@
+{
+  "realm": "onnxi",
+  "enabled": true,
+  "displayName": "ONNXI",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      { "name": "CLIENT", "description": "End user of the platform" },
+      { "name": "ADMIN", "description": "Administrator" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "onnxi-gateway",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "change-me-gateway-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://localhost/login/oauth2/code/keycloak",
+        "http://localhost:8080/login/oauth2/code/keycloak"
+      ],
+      "webOrigins": ["+"]
+    },
+    {
+      "clientId": "onnxi-backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false
+    }
+  ]
+}
