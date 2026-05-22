@@ -57,15 +57,36 @@ rate-limit:
 backend:
   base-url: ${BACKEND_BASE_URL:http://backend-service:8081}
 
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 4s
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        registerHealthIndicator: true
+    instances:
+      backend:
+        baseConfig: default
+
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, prometheus
+        include: health, info, prometheus, circuitbreakers
   endpoint:
     health:
       probes:
         enabled: true
+      show-details: when-authorized
+  health:
+    circuitbreakers:
+      enabled: true
   prometheus:
     metrics:
       export:

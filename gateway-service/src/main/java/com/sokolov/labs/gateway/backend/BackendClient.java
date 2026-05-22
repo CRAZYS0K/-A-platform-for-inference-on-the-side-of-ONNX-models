@@ -2,6 +2,9 @@ package com.sokolov.labs.gateway.backend;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -28,6 +31,9 @@ import java.util.UUID;
 @Component
 public class BackendClient {
 
+    private static final Logger log = LoggerFactory.getLogger(BackendClient.class);
+    private static final String CB_NAME = "backend";
+
     private final RestClient restClient;
     private final OAuth2AuthorizedClientService authorizedClientService;
 
@@ -46,36 +52,62 @@ public class BackendClient {
         this.authorizedClientService = authorizedClientService;
     }
 
+    @CircuitBreaker(name = CB_NAME, fallbackMethod = "fallbackListModels")
     public List<ModelDto> listModels() {
         return get("/api/models?size=50", new ParameterizedTypeReference<Page<ModelDto>>() {}).content();
     }
 
+    @SuppressWarnings("unused")
+    private List<ModelDto> fallbackListModels(Throwable ex) {
+        log.warn("Circuit breaker fallback for listModels: {}", ex.toString());
+        return List.of();
+    }
+
+    @CircuitBreaker(name = CB_NAME)
     public ModelDto uploadModel(String name, MultipartFile file) throws IOException {
         return uploadMultipart("/api/models", "file", file, Map.of("name", name), ModelDto.class);
     }
 
+    @CircuitBreaker(name = CB_NAME)
     public void deleteModel(UUID id) {
         deleteResource("/api/models/" + id);
     }
 
+    @CircuitBreaker(name = CB_NAME, fallbackMethod = "fallbackListDatasets")
     public List<DatasetDto> listDatasets() {
         return get("/api/datasets?size=50", new ParameterizedTypeReference<Page<DatasetDto>>() {}).content();
     }
 
+    @SuppressWarnings("unused")
+    private List<DatasetDto> fallbackListDatasets(Throwable ex) {
+        log.warn("Circuit breaker fallback for listDatasets: {}", ex.toString());
+        return List.of();
+    }
+
+    @CircuitBreaker(name = CB_NAME)
     public DatasetDto uploadDataset(String name, String kind, MultipartFile file) throws IOException {
         return uploadMultipart("/api/datasets", "file", file,
                 Map.of("name", name, "kind", kind == null ? "UNLABELED" : kind),
                 DatasetDto.class);
     }
 
+    @CircuitBreaker(name = CB_NAME)
     public void deleteDataset(UUID id) {
         deleteResource("/api/datasets/" + id);
     }
 
+    @CircuitBreaker(name = CB_NAME, fallbackMethod = "fallbackListTasks")
     public List<TaskDto> listTasks() {
         return get("/api/tasks?size=50", new ParameterizedTypeReference<Page<TaskDto>>() {}).content();
     }
 
+    @SuppressWarnings("unused")
+    private List<TaskDto> fallbackListTasks(Throwable ex) {
+        log.warn("Circuit breaker fallback for listTasks: {}", ex.toString());
+        return List.of();
+    }
+
+    @CircuitBreaker(name = CB_NAME)
     public TaskDto createTask(UUID modelId, UUID datasetId) {
         return restClient.post()
                 .uri("/api/tasks")
@@ -86,10 +118,18 @@ public class BackendClient {
                 .body(TaskDto.class);
     }
 
+    @CircuitBreaker(name = CB_NAME, fallbackMethod = "fallbackGetPrefs")
     public NotificationPrefsDto getNotificationPrefs() {
         return get("/api/me/notifications", new ParameterizedTypeReference<NotificationPrefsDto>() {});
     }
 
+    @SuppressWarnings("unused")
+    private NotificationPrefsDto fallbackGetPrefs(Throwable ex) {
+        log.warn("Circuit breaker fallback for getNotificationPrefs: {}", ex.toString());
+        return new NotificationPrefsDto(false, false, "");
+    }
+
+    @CircuitBreaker(name = CB_NAME)
     public NotificationPrefsDto updateNotificationPrefs(boolean emailEnabled,
                                                        boolean telegramEnabled,
                                                        String telegramChatId) {

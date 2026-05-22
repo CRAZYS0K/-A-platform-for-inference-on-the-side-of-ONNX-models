@@ -1,0 +1,46 @@
+# Production Caddyfile — reads {$DOMAIN} and {$ACME_EMAIL} from docker-compose env.
+# Caddy will obtain a Let's Encrypt certificate on first request via HTTP-01 challenge.
+
+{
+    email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        Permissions-Policy        "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+
+    # Keycloak under /auth/*
+    handle_path /auth/* {
+        reverse_proxy keycloak:8080 {
+            header_up Host {http.request.host}
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Port 443
+        }
+    }
+
+    # Grafana under /grafana/* (only reachable when --profile observability is enabled)
+    handle_path /grafana/* {
+        reverse_proxy grafana:3000 {
+            header_up Host {http.request.host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    # Everything else → gateway
+    reverse_proxy gateway-service:8080 {
+        header_up Host {http.request.host}
+        header_up X-Forwarded-Proto https
+    }
+
+    request_body {
+        max_size 500MB
+    }
+}
