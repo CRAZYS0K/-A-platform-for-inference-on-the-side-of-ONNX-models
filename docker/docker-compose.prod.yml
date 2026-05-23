@@ -17,7 +17,7 @@ x-app-env: &app-env
 services:
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -25,7 +25,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     command: ["postgres", "-c", "shared_buffers=192MB", "-c", "max_connections=80"]
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 15s
@@ -38,7 +38,7 @@ services:
     networks: [onnxi-net]
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "96mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
@@ -55,23 +55,27 @@ services:
     networks: [onnxi-net]
 
   kafka:
-    image: bitnami/kafka:3.8
+    image: apache/kafka:4.0.0
     restart: unless-stopped
     environment:
-      KAFKA_CFG_NODE_ID: "1"
-      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
-      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
-      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      CLUSTER_ID: "onnxi-cluster-id-onnxi-cluster-id"
     volumes:
-      - kafka-data:/bitnami/kafka
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 15s
       timeout: 10s
       retries: 12
@@ -82,7 +86,7 @@ services:
     networks: [onnxi-net]
 
   minio:
-    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -102,7 +106,7 @@ services:
     networks: [onnxi-net]
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.4
     restart: unless-stopped
     command: ["start", "--optimized", "--import-realm", "--http-port=8080"]
     environment:
@@ -133,7 +137,7 @@ services:
     networks: [onnxi-net]
 
   prometheus:
-    image: prom/prometheus:v2.55.1
+    image: prom/prometheus:v3.2.1
     restart: unless-stopped
     volumes:
       - ../infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -146,7 +150,7 @@ services:
     profiles: ["observability"]
 
   grafana:
-    image: grafana/grafana:11.3.0
+    image: grafana/grafana:12.0.0
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN}
@@ -271,7 +275,7 @@ services:
   # ─────────────── Reverse proxy ───────────────
 
   caddy:
-    image: caddy:2.8-alpine
+    image: caddy:2.10-alpine
     restart: unless-stopped
     ports:
       - "80:80"
