@@ -42,7 +42,12 @@
     </div>
 
     <div th:if="${task.status == 'SUCCEEDED'}">
-        <h3>Результаты инференса</h3>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="m-0">Результаты инференса</h3>
+            <a th:href="@{|/tasks/${task.id}/labels.zip|}" class="btn btn-outline-primary">
+                ⬇ Скачать labels (ZIP)
+            </a>
+        </div>
         <div id="summary" class="text-muted small mb-3">Загружаю…</div>
 
         <div class="form-check form-switch mb-2 d-inline-block me-3">
@@ -96,7 +101,7 @@ const TASK_ID = /*[[${task.id}]]*/ '';
                 data-truth='${truthJson.replace(/'/g, "&#39;")}'
                 data-w="${item.origWidth}" data-h="${item.origHeight}">
           <div class="img-wrap" style="position:relative; line-height:0;">
-            <img src="/tasks/${TASK_ID}/images/${encodeURI(stripImagesPrefix(item.filename))}"
+            <img src="/tasks/${TASK_ID}/images/${encodePath(stripImagesPrefix(item.filename))}"
                  alt="${item.filename}"
                  style="width:100%; height:auto; display:block;"
                  loading="lazy"
@@ -116,6 +121,7 @@ const TASK_ID = /*[[${task.id}]]*/ '';
   document.getElementById('toggle-truth').addEventListener('change', renderAll);
 
   function stripImagesPrefix(p) { return p.startsWith('images/') ? p.substring('images/'.length) : p; }
+  function encodePath(p) { return p.split('/').map(encodeURIComponent).join('/'); }
 
   function renderAll() {
     document.querySelectorAll('.sample-card').forEach(render);

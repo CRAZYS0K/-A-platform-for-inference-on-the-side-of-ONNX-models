@@ -1,10 +1,12 @@
 package com.sokolov.labs.backend.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sokolov.labs.backend.domain.InferenceTask;
 import com.sokolov.labs.backend.domain.UserAccount;
 import com.sokolov.labs.backend.service.TaskService;
 import com.sokolov.labs.backend.service.UserAccountService;
 import com.sokolov.labs.backend.storage.ObjectStorage;
+import com.sokolov.labs.shared.dto.TaskResultsPayload;
 import com.sokolov.labs.shared.dto.TaskStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -25,12 +27,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -39,6 +46,7 @@ public class TaskController {
     private final TaskService taskService;
     private final UserAccountService userAccountService;
     private final ObjectStorage storage;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public TaskController(TaskService taskService, UserAccountService userAccountService,
                           ObjectStorage storage) {
@@ -88,6 +96,75 @@ public class TaskController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .body(new InputStreamResource(in));
+    }
+
+    @GetMapping("/{id}/labels.zip")
+    public ResponseEntity<byte[]> labelsZip(@AuthenticationPrincipal Jwt jwt,
+                                            @PathVariable UUID id) throws IOException {
+        UserAccount user = userAccountService.findOrCreate(jwt);
+        InferenceTask task = taskService.get(user.getId(), id);
+        if (task.getResultS3Key() == null || !task.getResultS3Key().endsWith(".json")) {
+            return ResponseEntity.notFound().build();
+        }
+        TaskResultsPayload payload;
+        try (InputStream in = storage.download(task.getResultS3Key())) {
+            payload = objectMapper.readValue(in, TaskResultsPayload.class);
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(baos)) {
+            for (TaskResultsPayload.ImageResult item : payload.items()) {
+                String txtName = stripExtension(item.filename()) + ".txt";
+                zip.putNextEntry(new ZipEntry(txtName));
+                zip.write(buildYoloLabels(item).getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"task-" + id + "-labels.zip\"")
+                .body(baos.toByteArray());
+    }
+
+    private static String stripExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot >= 0 ? name.substring(0, dot) : name;
+    }
+
+    private static String buildYoloLabels(TaskResultsPayload.ImageResult item) {
+        StringBuilder sb = new StringBuilder();
+        double w = item.origWidth();
+        double h = item.origHeight();
+        if (w <= 0 || h <= 0) return "";
+        for (TaskResultsPayload.Detection d : item.detections()) {
+            double cx = (d.x1() + d.x2()) / 2.0 / w;
+            double cy = (d.y1() + d.y2()) / 2.0 / h;
+            double bw = (d.x2() - d.x1()) / w;
+            double bh = (d.y2() - d.y1()) / h;
+            sb.append(d.classId())
+                    .append(' ').append(fmt(cx))
+                    .append(' ').append(fmt(cy))
+                    .append(' ').append(fmt(bw))
+                    .append(' ').append(fmt(bh));
+            List<Double> kpts = d.keypoints();
+            if (kpts != null && !kpts.isEmpty()) {
+                int stride = (kpts.size() % 3 == 0) ? 3 : 2;
+                for (int i = 0; i + 1 < kpts.size(); i += stride) {
+                    double kx = kpts.get(i) / w;
+                    double ky = kpts.get(i + 1) / h;
+                    sb.append(' ').append(fmt(kx)).append(' ').append(fmt(ky));
+                    if (stride == 3 && i + 2 < kpts.size()) {
+                        sb.append(' ').append(fmt(kpts.get(i + 2)));
+                    }
+                }
+            }
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
+
+    private static String fmt(double v) {
+        return String.format(java.util.Locale.ROOT, "%.6f", v);
     }
 
     @GetMapping("/{id}/images/**")

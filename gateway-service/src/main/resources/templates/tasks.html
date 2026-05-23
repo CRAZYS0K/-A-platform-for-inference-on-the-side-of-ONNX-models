@@ -67,6 +67,7 @@
             <td th:text="${#temporals.format(t.createdAt, 'yyyy-MM-dd HH:mm')}">created</td>
             <td th:text="${t.finishedAt} != null ? ${#temporals.format(t.finishedAt, 'yyyy-MM-dd HH:mm')} : '—'">—</td>
             <td>
+                <a th:href="@{|/tasks/${t.id}|}" class="btn btn-sm btn-outline-primary me-1">Открыть</a>
                 <form th:if="${t.status == 'PENDING' or t.status == 'RUNNING'}"
                       method="post" th:action="@{|/tasks/${t.id}/cancel|}" class="d-inline">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

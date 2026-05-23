@@ -54,6 +54,17 @@ public class TaskDetailController {
                 .body(body);
     }
 
+    @GetMapping("/labels.zip")
+    @ResponseBody
+    public ResponseEntity<byte[]> labelsZip(@PathVariable UUID id) {
+        byte[] body = backend.taskLabelsZip(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"task-" + id + "-labels.zip\"")
+                .body(body);
+    }
+
     @GetMapping("/images/**")
     @ResponseBody
     public ResponseEntity<byte[]> image(@PathVariable UUID id, HttpServletRequest request) {

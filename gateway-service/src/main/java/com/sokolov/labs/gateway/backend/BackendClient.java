@@ -137,7 +137,7 @@ public class BackendClient {
     @CircuitBreaker(name = CB_NAME)
     public ImagePayload taskImage(UUID id, String relativePath) {
         var resp = restClient.get()
-                .uri("/api/tasks/" + id + "/images/" + relativePath)
+                .uri("/api/tasks/" + id + "/images/" + encodePath(relativePath))
                 .header("Authorization", "Bearer " + accessToken())
                 .retrieve()
                 .toEntity(byte[].class);
@@ -145,6 +145,26 @@ public class BackendClient {
                 ? resp.getHeaders().getContentType().toString()
                 : "application/octet-stream";
         return new ImagePayload(resp.getBody(), ct);
+    }
+
+    @CircuitBreaker(name = CB_NAME)
+    public byte[] taskLabelsZip(UUID id) {
+        return restClient.get()
+                .uri("/api/tasks/" + id + "/labels.zip")
+                .header("Authorization", "Bearer " + accessToken())
+                .retrieve()
+                .body(byte[].class);
+    }
+
+    private static String encodePath(String p) {
+        StringBuilder sb = new StringBuilder();
+        String[] parts = p.split("/");
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) sb.append('/');
+            sb.append(java.net.URLEncoder.encode(parts[i], java.nio.charset.StandardCharsets.UTF_8)
+                    .replace("+", "%20"));
+        }
+        return sb.toString();
     }
 
     @CircuitBreaker(name = CB_NAME)

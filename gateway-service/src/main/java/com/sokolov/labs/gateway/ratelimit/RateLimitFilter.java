@@ -42,7 +42,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
      */
     private static final List<String> EXEMPT_PATTERNS = List.of(
             "/tasks/*/images/**",
-            "/tasks/*/results.json");
+            "/tasks/*/results.json",
+            "/tasks/*/labels.zip");
 
     private final ProxyManager<String> proxyManager;
     private final RateLimitProperties properties;
