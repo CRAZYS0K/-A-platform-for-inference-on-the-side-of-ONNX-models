@@ -27,8 +27,17 @@ public class OnnxValidator {
             throw new InvalidOnnxModelException(
                     "Файл не похож на ONNX-модель (неверная сигнатура protobuf)");
         }
+        OrtSession.SessionOptions opts;
+        try {
+            opts = new OrtSession.SessionOptions();
+            // Allow models exported with newer (unreleased) ONNX opsets, e.g. opset 22+
+            // that ultralytics exports by default.
+            opts.addConfigEntry("session.allow_released_opsets_only", "0");
+        } catch (OrtException e) {
+            throw new InvalidOnnxModelException("Не удалось инициализировать ONNX Runtime: " + e.getMessage(), e);
+        }
         try (OrtEnvironment env = OrtEnvironment.getEnvironment();
-             OrtSession session = env.createSession(modelBytes, new OrtSession.SessionOptions())) {
+             OrtSession session = env.createSession(modelBytes, opts)) {
             String inputName = firstName(session.getInputInfo());
             String outputName = firstName(session.getOutputInfo());
             String inputShape = shapeOf(session.getInputInfo().get(inputName));

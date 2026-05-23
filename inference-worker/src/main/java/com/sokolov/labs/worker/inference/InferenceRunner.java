@@ -76,7 +76,10 @@ public class InferenceRunner {
                 "Artifacts downloaded", null, null);
 
         OrtEnvironment env = OrtEnvironment.getEnvironment();
-        try (OrtSession session = env.createSession(modelBytes, new OrtSession.SessionOptions())) {
+        OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
+        // Allow unreleased ONNX opsets (ultralytics exports with opset 22 by default).
+        opts.addConfigEntry("session.allow_released_opsets_only", "0");
+        try (OrtSession session = env.createSession(modelBytes, opts)) {
             String inputName = session.getInputNames().iterator().next();
             String outputName = session.getOutputNames().iterator().next();
             long[] inputShape = ((TensorInfo) session.getInputInfo().get(inputName).getInfo()).getShape();
