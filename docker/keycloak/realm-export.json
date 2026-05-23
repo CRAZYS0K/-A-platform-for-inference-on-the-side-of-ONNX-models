@@ -8,6 +8,14 @@
   "resetPasswordAllowed": true,
   "rememberMe": true,
   "sslRequired": "external",
+  "accessTokenLifespan": 1800,
+  "accessTokenLifespanForImplicitFlow": 1800,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 1800,
+  "accessCodeLifespanLogin": 1800,
   "roles": {
     "realm": [
       { "name": "CLIENT", "description": "End user of the platform" },
