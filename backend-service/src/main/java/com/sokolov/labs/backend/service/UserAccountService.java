@@ -21,9 +21,22 @@ public class UserAccountService {
     @Transactional
     public UserAccount findOrCreate(Jwt jwt) {
         String subject = jwt.getSubject();
-        return repository.findByKcSubject(subject)
-                .map(existing -> updateFromJwt(existing, jwt))
-                .orElseGet(() -> createFromJwt(jwt));
+        var byKc = repository.findByKcSubject(subject);
+        if (byKc.isPresent()) {
+            return updateFromJwt(byKc.get(), jwt);
+        }
+        // No row for this kc_subject. Maybe the Keycloak realm was recreated and
+        // this is the same person under a fresh sub — match by email and re-bind.
+        String email = jwt.getClaimAsString("email");
+        if (email != null) {
+            var byEmail = repository.findByEmail(email);
+            if (byEmail.isPresent()) {
+                UserAccount account = byEmail.get();
+                account.setKcSubject(subject);
+                return updateFromJwt(account, jwt);
+            }
+        }
+        return createFromJwt(jwt);
     }
 
     private UserAccount createFromJwt(Jwt jwt) {

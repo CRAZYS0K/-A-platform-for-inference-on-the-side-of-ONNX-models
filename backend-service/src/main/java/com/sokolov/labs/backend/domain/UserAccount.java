@@ -65,4 +65,8 @@ public class UserAccount {
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
+
+    public void setKcSubject(String kcSubject) {
+        this.kcSubject = kcSubject;
+    }
 }
