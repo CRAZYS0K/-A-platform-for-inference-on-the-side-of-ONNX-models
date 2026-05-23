@@ -35,6 +35,15 @@ public class DatasetsPageController {
                          @RequestParam(required = false, defaultValue = "UNLABELED") String kind,
                          @RequestParam("file") MultipartFile file,
                          RedirectAttributes attrs) throws IOException {
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
+            attrs.addFlashAttribute("error", "Файл должен иметь расширение .zip");
+            return "redirect:/datasets";
+        }
+        if (file.isEmpty()) {
+            attrs.addFlashAttribute("error", "Файл пустой");
+            return "redirect:/datasets";
+        }
         try {
             BackendClient.DatasetDto saved = backend.uploadDataset(name, kind, file);
             attrs.addFlashAttribute("success", "Загружен датасет: " + saved.name());

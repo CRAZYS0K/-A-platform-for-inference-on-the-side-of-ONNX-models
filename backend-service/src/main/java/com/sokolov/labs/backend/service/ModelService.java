@@ -29,6 +29,10 @@ public class ModelService {
 
     @Transactional
     public Model upload(UUID ownerId, String name, MultipartFile file) throws IOException {
+        validateFilename(file);
+        if (file.isEmpty()) {
+            throw new OnnxValidator.InvalidOnnxModelException("Файл пустой");
+        }
         byte[] bytes = file.getBytes();
         OnnxValidator.ModelSchema schema = validator.validate(bytes);
 
@@ -62,6 +66,17 @@ public class ModelService {
         Model model = get(ownerId, id);
         storage.delete(model.getS3Key());
         repository.delete(model);
+    }
+
+    private static void validateFilename(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        if (name == null || name.isBlank()) {
+            throw new OnnxValidator.InvalidOnnxModelException("Имя файла отсутствует");
+        }
+        if (!name.toLowerCase().endsWith(".onnx")) {
+            throw new OnnxValidator.InvalidOnnxModelException(
+                    "Ожидается файл с расширением .onnx, получено: " + name);
+        }
     }
 
     public static class ModelNotFoundException extends RuntimeException {

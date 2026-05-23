@@ -18,6 +18,15 @@ public class OnnxValidator {
     }
 
     public ModelSchema validate(byte[] modelBytes) {
+        if (modelBytes == null || modelBytes.length < 16) {
+            throw new InvalidOnnxModelException("Файл слишком мал для ONNX-модели");
+        }
+        // ONNX is a protobuf — quick sanity check on the first wire-format byte.
+        // Tag for field 1 (ir_version, varint) = 0x08. Most legit ONNX models start with it.
+        if (modelBytes[0] != 0x08) {
+            throw new InvalidOnnxModelException(
+                    "Файл не похож на ONNX-модель (неверная сигнатура protobuf)");
+        }
         try (OrtEnvironment env = OrtEnvironment.getEnvironment();
              OrtSession session = env.createSession(modelBytes, new OrtSession.SessionOptions())) {
             String inputName = firstName(session.getInputInfo());
@@ -26,7 +35,7 @@ public class OnnxValidator {
             String outputShape = shapeOf(session.getOutputInfo().get(outputName));
             return new ModelSchema(inputName, inputShape, outputName, outputShape);
         } catch (OrtException e) {
-            throw new InvalidOnnxModelException("ONNX model is invalid: " + e.getMessage(), e);
+            throw new InvalidOnnxModelException("ONNX модель повреждена: " + e.getMessage(), e);
         }
     }
 
@@ -42,6 +51,10 @@ public class OnnxValidator {
     }
 
     public static class InvalidOnnxModelException extends RuntimeException {
+        public InvalidOnnxModelException(String message) {
+            super(message);
+        }
+
         public InvalidOnnxModelException(String message, Throwable cause) {
             super(message, cause);
         }

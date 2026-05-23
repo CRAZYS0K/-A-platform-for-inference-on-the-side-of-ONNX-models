@@ -12,8 +12,9 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -35,10 +36,10 @@ public class BackendClient {
     private static final String CB_NAME = "backend";
 
     private final RestClient restClient;
-    private final OAuth2AuthorizedClientService authorizedClientService;
+    private final OAuth2AuthorizedClientManager authorizedClientManager;
 
     public BackendClient(@Value("${backend.base-url}") String baseUrl,
-                         OAuth2AuthorizedClientService authorizedClientService) {
+                         OAuth2AuthorizedClientManager authorizedClientManager) {
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestInterceptor((request, body, execution) -> {
@@ -49,7 +50,7 @@ public class BackendClient {
                     return execution.execute(request, body);
                 })
                 .build();
-        this.authorizedClientService = authorizedClientService;
+        this.authorizedClientManager = authorizedClientManager;
     }
 
     @CircuitBreaker(name = CB_NAME, fallbackMethod = "fallbackListModels")
@@ -183,10 +184,17 @@ public class BackendClient {
 
     private String accessToken() {
         OAuth2AuthenticationToken auth = (OAuth2AuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                auth.getAuthorizedClientRegistrationId(), auth.getName());
+        if (auth == null) {
+            throw new BackendException("Not authenticated");
+        }
+        OAuth2AuthorizeRequest request = OAuth2AuthorizeRequest
+                .withClientRegistrationId(auth.getAuthorizedClientRegistrationId())
+                .principal(auth)
+                .build();
+        OAuth2AuthorizedClient client = authorizedClientManager.authorize(request);
         if (client == null || client.getAccessToken() == null) {
-            throw new BackendException("No access token available");
+            log.warn("Authorization failed for {} (likely refresh-token expired)", auth.getName());
+            throw new BackendException("Session expired, please re-login");
         }
         return client.getAccessToken().getTokenValue();
     }

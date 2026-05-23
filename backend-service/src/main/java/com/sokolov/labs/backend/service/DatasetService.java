@@ -29,10 +29,11 @@ public class DatasetService {
 
     @Transactional
     public Dataset upload(UUID ownerId, String name, Dataset.Kind kind, MultipartFile file) throws IOException {
-        if (!isZip(file)) {
-            throw new InvalidDatasetException("Dataset must be a ZIP archive");
-        }
+        validateZipFile(file);
         int fileCount = countZipEntries(file);
+        if (fileCount == 0) {
+            throw new InvalidDatasetException("ZIP-архив пустой");
+        }
 
         UUID id = UUID.randomUUID();
         String s3Key = "datasets/" + ownerId + "/" + id + ".zip";
@@ -67,16 +68,28 @@ public class DatasetService {
         repository.delete(ds);
     }
 
-    private static boolean isZip(MultipartFile file) {
+    private static void validateZipFile(MultipartFile file) throws IOException {
         String original = file.getOriginalFilename();
-        if (original == null || !original.toLowerCase().endsWith(".zip")) {
-            return false;
+        if (original == null || original.isBlank()) {
+            throw new InvalidDatasetException("Имя файла отсутствует");
         }
-        String contentType = file.getContentType();
-        return contentType == null
-                || contentType.equals("application/zip")
-                || contentType.equals("application/x-zip-compressed")
-                || contentType.equals("application/octet-stream");
+        if (!original.toLowerCase().endsWith(".zip")) {
+            throw new InvalidDatasetException(
+                    "Ожидается ZIP-архив, получено: " + original);
+        }
+        if (file.isEmpty()) {
+            throw new InvalidDatasetException("Файл пустой");
+        }
+        // ZIP magic bytes: PK\003\004 (local file header) or PK\005\006 (empty zip end record).
+        try (InputStream in = file.getInputStream()) {
+            byte[] head = in.readNBytes(4);
+            if (head.length < 4
+                    || head[0] != (byte) 'P' || head[1] != (byte) 'K'
+                    || !(head[2] == 0x03 || head[2] == 0x05)) {
+                throw new InvalidDatasetException(
+                        "Файл не является ZIP-архивом (неверная сигнатура)");
+            }
+        }
     }
 
     private static int countZipEntries(MultipartFile file) throws IOException {

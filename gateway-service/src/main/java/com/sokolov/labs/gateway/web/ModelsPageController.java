@@ -33,6 +33,15 @@ public class ModelsPageController {
     public String upload(@RequestParam String name,
                          @RequestParam("file") MultipartFile file,
                          RedirectAttributes attrs) throws IOException {
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".onnx")) {
+            attrs.addFlashAttribute("error", "Файл должен иметь расширение .onnx");
+            return "redirect:/models";
+        }
+        if (file.isEmpty()) {
+            attrs.addFlashAttribute("error", "Файл пустой");
+            return "redirect:/models";
+        }
         try {
             BackendClient.ModelDto saved = backend.uploadModel(name, file);
             attrs.addFlashAttribute("success", "Загружена модель: " + saved.name());
