@@ -44,4 +44,5 @@ build/
 ### Local env files ###
 docker/.env
 .env
-.env.local
+.env.local/encodings.xml
+.idea/encodings.xml
