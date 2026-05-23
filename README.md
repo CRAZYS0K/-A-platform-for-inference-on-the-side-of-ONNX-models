@@ -17,7 +17,7 @@ Web-приложение: пользователь загружает свою O
 - **Microsoft ONNX Runtime** (Java) — инференс прямо на JVM.
 - **Prometheus + Grafana** — метрики, дашборд `ONNXI Overview`.
 - **Caddy** — TLS, HSTS, CSP, маршруты `/auth/*` → Keycloak, остальное → gateway.
-- **Telegram bot + SMTP** — уведомления при завершении задач.
+- **SMTP** — email-уведомления при завершении задач.
 
 ## Ключевые возможности
 
@@ -31,7 +31,7 @@ Web-приложение: пользователь загружает свою O
   **PCK@5px** для keypoints. Для классификаторов — argmax + accuracy. Результат — CSV
   в MinIO + presigned URL для скачивания.
 - Notifications: при завершении задачи backend публикует обогащённое событие;
-  notification-service шлёт email + Telegram согласно `/api/me/notifications`.
+  notification-service шлёт email согласно `/api/me/notifications`.
 - HTMX-таблица задач с авто-обновлением каждые 3 секунды.
 
 ## Архитектура
@@ -49,7 +49,7 @@ Web-приложение: пользователь загружает свою O
                                                                           ▼
                                                                     notification-service
                                                                           │
-                                                                     email / Telegram
+                                                                          email
 ```
 
 ## Быстрый запуск (локально)
@@ -106,7 +106,7 @@ docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
 │                                   # + Resilience4j CircuitBreaker
 ├── backend-service/                # REST API + JPA + Liquibase + Kafka producer/consumer
 ├── inference-worker/               # Kafka consumer + MinIO + ONNX Runtime + YOLO parser
-├── notification-service/           # Kafka consumer + JavaMail + Telegram Bot API
+├── notification-service/           # Kafka consumer + JavaMail
 ├── docker/
 │   ├── docker-compose.yml          # dev compose (self-signed TLS, Mailhog, in-mem Keycloak)
 │   ├── docker-compose.prod.yml     # production overlay (GHCR images, mem limits, postgres-backed Keycloak)
@@ -143,7 +143,7 @@ docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
 | Kafka / Redis / S3 | ✓ Все три |
 | Контейнеризация | ✓ Multi-stage Dockerfile на каждый сервис + dev/prod compose |
 | Observability | ✓ Micrometer + Prometheus + Grafana + JSON logs + correlationId |
-| Внешние интеграции | ✓ Email (Spring Mail) + Telegram bot |
+| Внешние интеграции | ✓ Email (Spring Mail) |
 | Хорошая регистрация/вход | ✓ Keycloak OIDC, опционально social login |
 | Паттерны отказоустойчивости | ✓ Resilience4j: ExponentialBackOff + DLQ для Kafka, CircuitBreaker для HTTP |
 | Качественная защита | ✓ Spring Security CSP/HSTS/CSRF, Bucket4j-Redis rate-limit, OWASP DC |

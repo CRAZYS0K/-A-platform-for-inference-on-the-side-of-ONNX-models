@@ -29,8 +29,6 @@ server:
 notification:
   email:
     from: ${NOTIFICATION_EMAIL_FROM:onnxi@localhost}
-  telegram:
-    bot-token: ${TELEGRAM_BOT_TOKEN:}
 
 management:
   endpoints:

@@ -28,8 +28,10 @@ spring:
     oauth2:
       resourceserver:
         jwt:
+          # Validate signature via JWKS only. Issuer matching is intentionally
+          # omitted because the public-facing issuer (https://localhost/auth/...)
+          # is not reachable from inside the docker network without TLS hacks.
           jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost/auth/realms/onnxi/protocol/openid-connect/certs}
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost/auth/realms/onnxi}
 
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

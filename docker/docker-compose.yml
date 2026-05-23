@@ -215,7 +215,6 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_MAIL_HOST: mailhog
       SPRING_MAIL_PORT: "1025"
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     depends_on:
       kafka:
         condition: service_healthy

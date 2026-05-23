@@ -27,11 +27,9 @@ public class NotificationsPageController {
 
     @PostMapping
     public String update(@RequestParam(defaultValue = "false") boolean emailEnabled,
-                         @RequestParam(defaultValue = "false") boolean telegramEnabled,
-                         @RequestParam(required = false) String telegramChatId,
                          RedirectAttributes attrs) {
         try {
-            backend.updateNotificationPrefs(emailEnabled, telegramEnabled, telegramChatId);
+            backend.updateNotificationPrefs(emailEnabled, false, "");
             attrs.addFlashAttribute("success", "Настройки сохранены");
         } catch (RuntimeException ex) {
             attrs.addFlashAttribute("error", "Не удалось сохранить: " + ex.getMessage());

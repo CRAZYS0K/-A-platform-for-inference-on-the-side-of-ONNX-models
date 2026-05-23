@@ -1,7 +1,6 @@
 package com.sokolov.labs.notification.messaging;
 
 import com.sokolov.labs.notification.email.EmailNotifier;
-import com.sokolov.labs.notification.telegram.TelegramNotifier;
 import com.sokolov.labs.shared.dto.NotificationEvent;
 import com.sokolov.labs.shared.dto.TaskStatus;
 import org.slf4j.Logger;
@@ -15,29 +14,21 @@ public class NotificationListener {
     private static final Logger log = LoggerFactory.getLogger(NotificationListener.class);
 
     private final EmailNotifier emailNotifier;
-    private final TelegramNotifier telegramNotifier;
 
-    public NotificationListener(EmailNotifier emailNotifier, TelegramNotifier telegramNotifier) {
+    public NotificationListener(EmailNotifier emailNotifier) {
         this.emailNotifier = emailNotifier;
-        this.telegramNotifier = telegramNotifier;
     }
 
     @KafkaListener(topics = "inference.notifications",
             groupId = "${spring.kafka.consumer.group-id:onnxi-notifications}")
     public void onNotification(NotificationEvent event) {
-        String subject = "ONNXI task " + event.status() + ": " + event.taskId();
-        String body = buildBody(event);
-        log.info("Notification for task {} status={} email={} tg={}",
+        log.info("Notification for task {} status={} email={}",
                 event.taskId(), event.status(),
-                Boolean.TRUE.equals(event.emailEnabled()),
-                Boolean.TRUE.equals(event.telegramEnabled()));
+                Boolean.TRUE.equals(event.emailEnabled()));
 
         if (Boolean.TRUE.equals(event.emailEnabled()) && event.email() != null && !event.email().isBlank()) {
-            emailNotifier.send(event.email(), subject, body);
-        }
-        if (Boolean.TRUE.equals(event.telegramEnabled())
-                && event.telegramChatId() != null && !event.telegramChatId().isBlank()) {
-            telegramNotifier.send(event.telegramChatId(), subject + "\n\n" + body);
+            String subject = "ONNXI task " + event.status() + ": " + event.taskId();
+            emailNotifier.send(event.email(), subject, buildBody(event));
         }
     }
 

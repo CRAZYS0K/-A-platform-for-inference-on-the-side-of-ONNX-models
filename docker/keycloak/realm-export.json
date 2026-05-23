@@ -27,7 +27,10 @@
         "https://localhost/login/oauth2/code/keycloak",
         "http://localhost:8080/login/oauth2/code/keycloak"
       ],
-      "webOrigins": ["+"]
+      "webOrigins": ["+"],
+      "attributes": {
+        "post.logout.redirect.uris": "https://localhost/##https://localhost##http://localhost:8080"
+      }
     },
     {
       "clientId": "onnxi-backend",

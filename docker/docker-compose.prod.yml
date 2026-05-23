@@ -261,7 +261,6 @@ services:
       SPRING_MAIL_AUTH: ${SMTP_AUTH:-false}
       SPRING_MAIL_STARTTLS: ${SMTP_STARTTLS:-false}
       NOTIFICATION_EMAIL_FROM: ${NOTIFICATION_EMAIL_FROM:-onnxi@localhost}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       JAVA_OPTS: "-Xms128m -Xmx256m -XX:MaxRAMPercentage=70"
     depends_on:
       kafka:

@@ -38,11 +38,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.telegram</groupId>
-            <artifactId>telegrambots</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.sokolov.labs</groupId>
             <artifactId>shared-dto</artifactId>
         </dependency>
