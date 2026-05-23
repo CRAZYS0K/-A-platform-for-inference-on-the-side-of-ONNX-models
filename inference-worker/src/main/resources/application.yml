@@ -17,6 +17,11 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       max-poll-records: 1
       properties:
+        # Inference may take up to ~2h on a large dataset; otherwise Kafka kicks the
+        # consumer out of its group and re-delivers the same task forever.
+        max.poll.interval.ms: 7200000
+        session.timeout.ms: 60000
+        heartbeat.interval.ms: 15000
         spring.json.value.default.type: com.sokolov.labs.shared.dto.InferenceTaskMessage
         spring.json.trusted.packages: com.sokolov.labs.shared.dto
         spring.json.use.type.headers: false

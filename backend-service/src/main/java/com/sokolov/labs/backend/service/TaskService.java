@@ -86,6 +86,13 @@ public class TaskService {
     public void applyStatus(InferenceStatusMessage update) {
         taskRepository.findById(update.taskId()).ifPresentOrElse(task -> {
             TaskStatus prev = task.getStatus();
+            // Idempotency: once a task is in a terminal state, ignore further updates.
+            // Without this a re-delivered Kafka message could flip SUCCEEDED back to RUNNING.
+            if (prev == TaskStatus.SUCCEEDED || prev == TaskStatus.FAILED || prev == TaskStatus.CANCELED) {
+                log.debug("Ignoring status update for already-terminal task {} (prev={}, incoming={})",
+                        task.getId(), prev, update.status());
+                return;
+            }
             task.setStatus(update.status());
             task.setProgressPct(Math.max(task.getProgressPct(), update.progressPct()));
             if (update.message() != null) {
