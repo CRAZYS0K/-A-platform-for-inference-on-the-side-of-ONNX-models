@@ -47,4 +47,16 @@ public class TasksPageController {
         }
         return "redirect:/tasks";
     }
+
+    @PostMapping("/{id}/cancel")
+    public String cancel(@org.springframework.web.bind.annotation.PathVariable UUID id,
+                         RedirectAttributes attrs) {
+        try {
+            BackendClient.TaskDto task = backend.cancelTask(id);
+            attrs.addFlashAttribute("success", "Задача остановлена: статус " + task.status());
+        } catch (RuntimeException ex) {
+            attrs.addFlashAttribute("error", "Не удалось остановить: " + ex.getMessage());
+        }
+        return "redirect:/tasks";
+    }
 }

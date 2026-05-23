@@ -9,9 +9,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
 
@@ -30,6 +32,17 @@ public class TaskDetailController {
         BackendClient.TaskDto task = backend.getTask(id);
         view.addAttribute("task", task);
         return "task-detail";
+    }
+
+    @PostMapping("/cancel")
+    public String cancel(@PathVariable UUID id, RedirectAttributes attrs) {
+        try {
+            BackendClient.TaskDto task = backend.cancelTask(id);
+            attrs.addFlashAttribute("success", "Задача остановлена: статус " + task.status());
+        } catch (RuntimeException ex) {
+            attrs.addFlashAttribute("error", "Не удалось остановить: " + ex.getMessage());
+        }
+        return "redirect:/tasks/" + id;
     }
 
     @GetMapping("/results.json")

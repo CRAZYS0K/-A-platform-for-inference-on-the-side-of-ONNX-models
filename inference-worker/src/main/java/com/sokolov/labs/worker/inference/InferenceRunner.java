@@ -45,12 +45,16 @@ public class InferenceRunner {
     private final StorageClient storage;
     private final StatusPublisher publisher;
     private final MeterRegistry meterRegistry;
+    private final CancellationRegistry cancellationRegistry;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public InferenceRunner(StorageClient storage, StatusPublisher publisher, MeterRegistry meterRegistry) {
+    public InferenceRunner(StorageClient storage, StatusPublisher publisher,
+                           MeterRegistry meterRegistry,
+                           CancellationRegistry cancellationRegistry) {
         this.storage = storage;
         this.publisher = publisher;
         this.meterRegistry = meterRegistry;
+        this.cancellationRegistry = cancellationRegistry;
     }
 
     public void run(InferenceTaskMessage task) throws Exception {
@@ -69,6 +73,12 @@ public class InferenceRunner {
     }
 
     private void doRun(InferenceTaskMessage task) throws Exception {
+        if (cancellationRegistry.isCancelled(task.taskId())) {
+            log.info("Task {} is cancelled before processing started — skipping", task.taskId());
+            publisher.publish(task.taskId(), task.ownerId(), TaskStatus.CANCELED, 0,
+                    "Cancelled by user", null, null);
+            return;
+        }
         publisher.publish(task.taskId(), task.ownerId(), TaskStatus.RUNNING, 5, "Started", null, null);
 
         byte[] modelBytes = storage.download(task.modelS3Key());
@@ -113,6 +123,14 @@ public class InferenceRunner {
             }
 
             for (int i = 0; i < total; i++) {
+                if (cancellationRegistry.isCancelled(task.taskId())) {
+                    log.info("Task {} cancelled by user after {} of {} samples", task.taskId(), i, total);
+                    publisher.publish(task.taskId(), task.ownerId(), TaskStatus.CANCELED,
+                            (int) Math.round(i * 100.0 / Math.max(1, total)),
+                            "Cancelled by user after " + i + " of " + total + " samples",
+                            null, null);
+                    return;
+                }
                 String name = samples.get(i);
                 byte[] data = entries.get(name);
 

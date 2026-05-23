@@ -30,6 +30,11 @@ public class KafkaConfig {
     }
 
     @Bean
+    public NewTopic inferenceTasksCancelTopic() {
+        return TopicBuilder.name(KafkaTopics.INFERENCE_TASKS_CANCEL).partitions(1).replicas(1).build();
+    }
+
+    @Bean
     public JsonDeserializer<Object> kafkaJsonDeserializer() {
         JsonDeserializer<Object> deserializer = new JsonDeserializer<>();
         deserializer.addTrustedPackages("com.sokolov.labs.shared.dto");

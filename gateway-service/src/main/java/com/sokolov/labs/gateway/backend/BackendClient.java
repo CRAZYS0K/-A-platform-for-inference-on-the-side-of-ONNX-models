@@ -114,6 +114,15 @@ public class BackendClient {
     }
 
     @CircuitBreaker(name = CB_NAME)
+    public TaskDto cancelTask(UUID id) {
+        return restClient.post()
+                .uri("/api/tasks/" + id + "/cancel")
+                .header("Authorization", "Bearer " + accessToken())
+                .retrieve()
+                .body(TaskDto.class);
+    }
+
+    @CircuitBreaker(name = CB_NAME)
     public byte[] taskResultsJson(UUID id) {
         return restClient.get()
                 .uri("/api/tasks/" + id + "/results")

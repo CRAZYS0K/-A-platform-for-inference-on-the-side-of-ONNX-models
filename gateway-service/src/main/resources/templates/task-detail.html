@@ -7,13 +7,20 @@
 
 <main class="container-fluid py-4" style="max-width: 1400px;">
     <a th:href="@{/tasks}" class="text-decoration-none">← Все задачи</a>
-    <h1 class="mt-2">
-        Задача <code th:text="${task.id}">id</code>
-        <span class="badge ms-2 align-middle"
+    <h1 class="mt-2 d-flex align-items-center gap-3 flex-wrap">
+        <span>Задача <code th:text="${task.id}">id</code></span>
+        <span class="badge align-middle"
               th:classappend="${task.status == 'SUCCEEDED' ? 'bg-success' :
                                (task.status == 'FAILED' ? 'bg-danger' :
-                               (task.status == 'RUNNING' ? 'bg-info' : 'bg-secondary'))}"
+                               (task.status == 'RUNNING' ? 'bg-info' :
+                               (task.status == 'CANCELED' ? 'bg-warning text-dark' : 'bg-secondary')))}"
               th:text="${task.status}">SUCCEEDED</span>
+        <form th:if="${task.status == 'PENDING' or task.status == 'RUNNING'}"
+              method="post" th:action="@{|/tasks/${task.id}/cancel|}" class="d-inline ms-auto">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="btn btn-outline-warning" type="submit"
+                    onclick="return confirm('Остановить задачу?')">Остановить</button>
+        </form>
     </h1>
 
     <dl class="row mt-3">

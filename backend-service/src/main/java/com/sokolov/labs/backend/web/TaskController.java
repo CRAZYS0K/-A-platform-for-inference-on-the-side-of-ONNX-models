@@ -68,6 +68,12 @@ public class TaskController {
         return TaskResponse.from(taskService.get(user.getId(), id));
     }
 
+    @PostMapping("/{id}/cancel")
+    public TaskResponse cancel(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        UserAccount user = userAccountService.findOrCreate(jwt);
+        return TaskResponse.from(taskService.cancel(user.getId(), id));
+    }
+
     @GetMapping(value = "/{id}/results", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<InputStreamResource> results(@AuthenticationPrincipal Jwt jwt,
                                                        @PathVariable UUID id) throws IOException {

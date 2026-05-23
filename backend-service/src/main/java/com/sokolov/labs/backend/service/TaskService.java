@@ -5,6 +5,7 @@ import com.sokolov.labs.backend.domain.InferenceTask;
 import com.sokolov.labs.backend.domain.InferenceTaskRepository;
 import com.sokolov.labs.backend.domain.Model;
 import com.sokolov.labs.backend.messaging.KafkaTopics;
+import com.sokolov.labs.shared.dto.CancelTaskMessage;
 import com.sokolov.labs.shared.dto.InferenceStatusMessage;
 import com.sokolov.labs.shared.dto.InferenceTaskMessage;
 import com.sokolov.labs.shared.dto.TaskStatus;
@@ -80,6 +81,32 @@ public class TaskService {
     public InferenceTask get(UUID ownerId, UUID id) {
         return taskRepository.findByIdAndOwnerId(id, ownerId)
                 .orElseThrow(() -> new TaskNotFoundException(id));
+    }
+
+    @Transactional
+    public InferenceTask cancel(UUID ownerId, UUID id) {
+        InferenceTask task = taskRepository.findByIdAndOwnerId(id, ownerId)
+                .orElseThrow(() -> new TaskNotFoundException(id));
+        TaskStatus prev = task.getStatus();
+        if (prev == TaskStatus.SUCCEEDED || prev == TaskStatus.FAILED || prev == TaskStatus.CANCELED) {
+            // Already finished — nothing to do, return current state.
+            return task;
+        }
+        task.setStatus(TaskStatus.CANCELED);
+        if (task.getErrorMessage() == null) {
+            task.setErrorMessage("Cancelled by user");
+        }
+        task.setFinishedAt(Instant.now());
+
+        kafkaTemplate.send(KafkaTopics.INFERENCE_TASKS_CANCEL, id.toString(),
+                new CancelTaskMessage(id, ownerId));
+        log.info("Task {} cancelled by user (prev status {})", id, prev);
+
+        Counter.builder("inference_tasks_total")
+                .tag("status", TaskStatus.CANCELED.name())
+                .register(meterRegistry)
+                .increment();
+        return task;
     }
 
     @Transactional
