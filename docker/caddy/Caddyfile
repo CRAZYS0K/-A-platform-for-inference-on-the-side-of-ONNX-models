@@ -25,8 +25,10 @@ localhost {
         -Server
     }
 
-    # Keycloak подвешен на /auth/* (KC_HTTP_RELATIVE_PATH=/auth)
-    handle_path /auth/* {
+    # Keycloak подвешен на /auth/* (KC_HTTP_RELATIVE_PATH=/auth).
+    # Используем `handle`, а не `handle_path`, чтобы префикс /auth НЕ снимался —
+    # сам Keycloak ожидает его.
+    handle /auth/* {
         reverse_proxy keycloak:8080 {
             header_up Host {http.request.host}
             header_up X-Forwarded-Proto https
@@ -34,7 +36,7 @@ localhost {
     }
 
     # MinIO консоль (опционально, для отладки)
-    handle_path /minio/* {
+    handle /minio/* {
         reverse_proxy minio:9001
     }
 
