@@ -109,6 +109,36 @@ public class BackendClient {
     }
 
     @CircuitBreaker(name = CB_NAME)
+    public TaskDto getTask(UUID id) {
+        return get("/api/tasks/" + id, new ParameterizedTypeReference<TaskDto>() {});
+    }
+
+    @CircuitBreaker(name = CB_NAME)
+    public byte[] taskResultsJson(UUID id) {
+        return restClient.get()
+                .uri("/api/tasks/" + id + "/results")
+                .header("Authorization", "Bearer " + accessToken())
+                .retrieve()
+                .body(byte[].class);
+    }
+
+    public record ImagePayload(byte[] bytes, String contentType) {
+    }
+
+    @CircuitBreaker(name = CB_NAME)
+    public ImagePayload taskImage(UUID id, String relativePath) {
+        var resp = restClient.get()
+                .uri("/api/tasks/" + id + "/images/" + relativePath)
+                .header("Authorization", "Bearer " + accessToken())
+                .retrieve()
+                .toEntity(byte[].class);
+        String ct = resp.getHeaders().getContentType() != null
+                ? resp.getHeaders().getContentType().toString()
+                : "application/octet-stream";
+        return new ImagePayload(resp.getBody(), ct);
+    }
+
+    @CircuitBreaker(name = CB_NAME)
     public TaskDto createTask(UUID modelId, UUID datasetId) {
         return restClient.post()
                 .uri("/api/tasks")

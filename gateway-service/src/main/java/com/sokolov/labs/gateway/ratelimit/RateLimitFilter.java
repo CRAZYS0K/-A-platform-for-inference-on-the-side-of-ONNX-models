@@ -36,6 +36,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
             "/datasets", "/datasets/**",
             "/tasks", "/tasks/**",
             "/notifications", "/notifications/**");
+    /**
+     * Exempt patterns — these endpoints are gated by authn but are called many times
+     * from a single page load (e.g. an inference gallery has dozens of images).
+     */
+    private static final List<String> EXEMPT_PATTERNS = List.of(
+            "/tasks/*/images/**",
+            "/tasks/*/results.json");
 
     private final ProxyManager<String> proxyManager;
     private final RateLimitProperties properties;
@@ -84,6 +91,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private boolean isProtected(HttpServletRequest request) {
         String path = request.getRequestURI();
+        for (String pattern : EXEMPT_PATTERNS) {
+            if (matcher.match(pattern, path)) {
+                return false;
+            }
+        }
         for (String pattern : PROTECTED_PATTERNS) {
             if (matcher.match(pattern, path)) {
                 return true;

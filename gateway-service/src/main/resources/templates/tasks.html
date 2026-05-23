@@ -47,7 +47,7 @@
                hx-trigger="every 3s"
                hx-swap="outerHTML">
         <tr th:each="t : ${tasks}">
-            <td><code th:text="${#strings.substring(t.id.toString(), 0, 8)}">id</code></td>
+            <td><a th:href="@{|/tasks/${t.id}|}"><code th:text="${#strings.substring(t.id.toString(), 0, 8)}">id</code></a></td>
             <td>
                 <span class="badge"
                       th:classappend="${t.status == 'SUCCEEDED' ? 'bg-success' :

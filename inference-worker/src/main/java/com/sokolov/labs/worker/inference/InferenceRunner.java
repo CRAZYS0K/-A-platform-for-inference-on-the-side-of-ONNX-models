@@ -8,6 +8,7 @@ import ai.onnxruntime.TensorInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sokolov.labs.shared.dto.InferenceTaskMessage;
+import com.sokolov.labs.shared.dto.TaskResultsPayload;
 import com.sokolov.labs.shared.dto.TaskStatus;
 import com.sokolov.labs.worker.messaging.StatusPublisher;
 import com.sokolov.labs.worker.storage.StorageClient;
@@ -96,6 +97,7 @@ public class InferenceRunner {
             log.info("Dataset: {} samples selected, {} labels available", samples.size(), labels.size());
 
             StringBuilder csv = new StringBuilder();
+            List<TaskResultsPayload.ImageResult> imageResults = new ArrayList<>();
             int total = samples.size();
             int correctCls = 0;
             int labeledCls = 0;
@@ -103,10 +105,10 @@ public class InferenceRunner {
             int pckSamples = 0;
             double recallSum = 0;
             int recallSamples = 0;
+            String taskPrefix = "results/" + task.ownerId() + "/" + task.taskId();
+            String imagesPrefix = taskPrefix + "/images/";
 
-            if (imageInput) {
-                csv.append("filename,detections\n");
-            } else {
+            if (!imageInput) {
                 csv.append("filename,predicted,true_label\n");
             }
 
@@ -119,18 +121,21 @@ public class InferenceRunner {
                     int width = (int) effectiveShape[3];
                     ImageLoader.Loaded lb = ImageLoader.loadLetterboxRgb(data, height, width);
                     long[] shape = {1, 3, height, width};
+
+                    String imageKey = imagesPrefix + stripImagesPrefix(name);
+                    storage.upload(imageKey, data, contentTypeFor(name));
+
                     try (OnnxTensor tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(lb.tensor()), shape);
                          OrtSession.Result result = session.run(Map.of(inputName, tensor))) {
                         OnnxValue out = result.get(outputName).orElseThrow();
                         List<Detection> dets = YoloOutputParser.parse(out.getValue(), width, height, lb,
                                 YoloOutputParser.DEFAULT_CONF, YoloOutputParser.DEFAULT_IOU);
-                        csv.append(name).append(',').append('"').append(serialiseDetections(dets))
-                                .append('"').append('\n');
 
+                        List<Detection> truthDets = List.of();
                         byte[] labelBytes = lookupLabel(labels, name);
                         if (labelBytes != null && task.labeled()) {
-                            List<Detection> truth = parseLabel(labelBytes, lb.origWidth(), lb.origHeight());
-                            AccuracyCalculator.FrameScore score = AccuracyCalculator.evaluate(dets, truth);
+                            truthDets = parseLabel(labelBytes, lb.origWidth(), lb.origHeight());
+                            AccuracyCalculator.FrameScore score = AccuracyCalculator.evaluate(dets, truthDets);
                             if (!Double.isNaN(score.detectionRecall())) {
                                 recallSum += score.detectionRecall();
                                 recallSamples++;
@@ -140,6 +145,10 @@ public class InferenceRunner {
                                 pckSamples++;
                             }
                         }
+
+                        imageResults.add(new TaskResultsPayload.ImageResult(
+                                name, imageKey, lb.origWidth(), lb.origHeight(),
+                                toDetectionDtos(dets), toDetectionDtos(truthDets)));
                     }
                 } else {
                     int expected = expectedSize(effectiveShape);
@@ -165,16 +174,25 @@ public class InferenceRunner {
                 }
             }
 
-            String resultKey = "results/" + task.ownerId() + "/" + task.taskId() + ".csv";
-            storage.upload(resultKey, csv.toString().getBytes(StandardCharsets.UTF_8), "text/csv");
-
             Double accuracy = null;
             String summary;
+            String resultKey;
             if (imageInput) {
                 Double recall = recallSamples > 0 ? recallSum / recallSamples : null;
                 Double pck = pckSamples > 0 ? pckSum / pckSamples : null;
                 if (pck != null) accuracy = pck;
                 else if (recall != null) accuracy = recall;
+
+                TaskResultsPayload payload = new TaskResultsPayload(
+                        java.util.Arrays.toString(effectiveShape),
+                        task.labeled(),
+                        recall, pck,
+                        imageResults);
+                resultKey = taskPrefix + "/results.json";
+                storage.upload(resultKey,
+                        objectMapper.writeValueAsBytes(payload),
+                        "application/json");
+
                 summary = String.format("Processed %d images; recall=%s pck@%dpx=%s",
                         total,
                         recall == null ? "n/a" : String.format("%.4f", recall),
@@ -182,6 +200,8 @@ public class InferenceRunner {
                         pck == null ? "n/a" : String.format("%.4f", pck));
             } else {
                 if (task.labeled() && labeledCls > 0) accuracy = (double) correctCls / labeledCls;
+                resultKey = taskPrefix + "/results.csv";
+                storage.upload(resultKey, csv.toString().getBytes(StandardCharsets.UTF_8), "text/csv");
                 summary = "Processed " + total + " samples"
                         + (accuracy != null ? String.format(", accuracy=%.4f", accuracy) : "");
             }
@@ -189,6 +209,29 @@ public class InferenceRunner {
                     summary, resultKey, accuracy);
             log.info("Task {} succeeded ({})", task.taskId(), summary);
         }
+    }
+
+    private static String stripImagesPrefix(String name) {
+        return name.startsWith("images/") ? name.substring("images/".length()) : name;
+    }
+
+    private static String contentTypeFor(String name) {
+        String lower = name.toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".bmp")) return "image/bmp";
+        if (lower.endsWith(".webp")) return "image/webp";
+        return "image/jpeg";
+    }
+
+    private static List<TaskResultsPayload.Detection> toDetectionDtos(List<Detection> dets) {
+        List<TaskResultsPayload.Detection> out = new ArrayList<>(dets.size());
+        for (Detection d : dets) {
+            out.add(new TaskResultsPayload.Detection(
+                    d.x1(), d.y1(), d.x2(), d.y2(),
+                    d.confidence(), d.classId(),
+                    d.keypoints()));
+        }
+        return out;
     }
 
     private static String stripExtension(String filename) {
@@ -345,7 +388,8 @@ public class InferenceRunner {
                 .toList();
     }
 
-    private static String serialiseDetections(List<Detection> dets) {
+    @SuppressWarnings("unused")
+    private static String legacyCsvDetections(List<Detection> dets) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < dets.size(); i++) {
             Detection d = dets.get(i);

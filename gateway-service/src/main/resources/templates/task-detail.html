@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Задача')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: flash}"></div>
+
+<main class="container-fluid py-4" style="max-width: 1400px;">
+    <a th:href="@{/tasks}" class="text-decoration-none">← Все задачи</a>
+    <h1 class="mt-2">
+        Задача <code th:text="${task.id}">id</code>
+        <span class="badge ms-2 align-middle"
+              th:classappend="${task.status == 'SUCCEEDED' ? 'bg-success' :
+                               (task.status == 'FAILED' ? 'bg-danger' :
+                               (task.status == 'RUNNING' ? 'bg-info' : 'bg-secondary'))}"
+              th:text="${task.status}">SUCCEEDED</span>
+    </h1>
+
+    <dl class="row mt-3">
+        <dt class="col-sm-2">Модель</dt>
+        <dd class="col-sm-10"><code th:text="${task.modelId}">model</code></dd>
+        <dt class="col-sm-2">Датасет</dt>
+        <dd class="col-sm-10"><code th:text="${task.datasetId}">dataset</code></dd>
+        <dt class="col-sm-2">Accuracy</dt>
+        <dd class="col-sm-10" th:text="${task.accuracy} != null ? ${#numbers.formatDecimal(task.accuracy, 1, 4)} : '—'">—</dd>
+        <dt class="col-sm-2">Создана</dt>
+        <dd class="col-sm-10" th:text="${#temporals.format(task.createdAt, 'yyyy-MM-dd HH:mm:ss')}">—</dd>
+        <dt class="col-sm-2">Завершена</dt>
+        <dd class="col-sm-10" th:text="${task.finishedAt} != null ? ${#temporals.format(task.finishedAt, 'yyyy-MM-dd HH:mm:ss')} : '—'">—</dd>
+    </dl>
+
+    <div th:if="${task.status != 'SUCCEEDED'}" class="alert alert-warning">
+        Результаты появятся, когда задача будет завершена со статусом SUCCEEDED.
+        <span th:if="${task.errorMessage}" th:text="${task.errorMessage}">err</span>
+    </div>
+
+    <div th:if="${task.status == 'SUCCEEDED'}">
+        <h3>Результаты инференса</h3>
+        <div id="summary" class="text-muted small mb-3">Загружаю…</div>
+
+        <div class="form-check form-switch mb-2 d-inline-block me-3">
+            <input class="form-check-input" type="checkbox" id="toggle-bboxes" checked>
+            <label class="form-check-label" for="toggle-bboxes">Bounding boxes</label>
+        </div>
+        <div class="form-check form-switch mb-2 d-inline-block me-3">
+            <input class="form-check-input" type="checkbox" id="toggle-kpts" checked>
+            <label class="form-check-label" for="toggle-kpts">Keypoints</label>
+        </div>
+        <div class="form-check form-switch mb-2 d-inline-block me-3">
+            <input class="form-check-input" type="checkbox" id="toggle-truth">
+            <label class="form-check-label" for="toggle-truth">Ground truth (если есть)</label>
+        </div>
+
+        <div id="gallery" class="row g-3 mt-2"></div>
+    </div>
+</main>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+const TASK_ID = /*[[${task.id}]]*/ '';
+/*]]>*/
+</script>
+<script>
+(async () => {
+  if (!document.getElementById('gallery')) return;
+  const summary = document.getElementById('summary');
+  const gallery = document.getElementById('gallery');
+  let payload;
+  try {
+    const resp = await fetch(`/tasks/${TASK_ID}/results.json`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    payload = await resp.json();
+  } catch (e) {
+    summary.textContent = 'Не удалось загрузить результаты: ' + e.message;
+    return;
+  }
+  const total = payload.items ? payload.items.length : 0;
+  summary.textContent = `Обработано изображений: ${total}` +
+    (payload.recall != null ? `; recall=${payload.recall.toFixed(4)}` : '') +
+    (payload.pck != null ? `; PCK@5px=${payload.pck.toFixed(4)}` : '');
+
+  const cards = (payload.items || []).map(item => {
+    const detsJson = JSON.stringify(item.detections);
+    const truthJson = JSON.stringify(item.truth || []);
+    return `
+      <div class="col-md-6 col-xl-4">
+        <figure class="card p-2 m-0 sample-card"
+                data-detections='${detsJson.replace(/'/g, "&#39;")}'
+                data-truth='${truthJson.replace(/'/g, "&#39;")}'
+                data-w="${item.origWidth}" data-h="${item.origHeight}">
+          <div class="img-wrap" style="position:relative; line-height:0;">
+            <img src="/tasks/${TASK_ID}/images/${encodeURI(stripImagesPrefix(item.filename))}"
+                 alt="${item.filename}"
+                 style="width:100%; height:auto; display:block;"
+                 loading="lazy"
+                 onload="render(this.closest('.sample-card'))" />
+            <svg class="overlay" viewBox="0 0 ${item.origWidth} ${item.origHeight}"
+                 preserveAspectRatio="none"
+                 style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;"></svg>
+          </div>
+          <figcaption class="small text-muted mt-2 text-truncate" title="${item.filename}">${item.filename}</figcaption>
+        </figure>
+      </div>`;
+  }).join('');
+  gallery.innerHTML = cards;
+
+  document.getElementById('toggle-bboxes').addEventListener('change', renderAll);
+  document.getElementById('toggle-kpts').addEventListener('change', renderAll);
+  document.getElementById('toggle-truth').addEventListener('change', renderAll);
+
+  function stripImagesPrefix(p) { return p.startsWith('images/') ? p.substring('images/'.length) : p; }
+
+  function renderAll() {
+    document.querySelectorAll('.sample-card').forEach(render);
+  }
+
+  window.render = function(card) {
+    const showBox = document.getElementById('toggle-bboxes').checked;
+    const showKpts = document.getElementById('toggle-kpts').checked;
+    const showTruth = document.getElementById('toggle-truth').checked;
+    const svg = card.querySelector('svg.overlay');
+    const dets = JSON.parse(card.dataset.detections);
+    const truth = JSON.parse(card.dataset.truth);
+    const w = parseFloat(card.dataset.w), h = parseFloat(card.dataset.h);
+    const strokeW = Math.max(2, Math.min(w, h) / 200);
+    const kptR = Math.max(3, Math.min(w, h) / 180);
+    let svgText = '';
+    const drawDet = (d, color) => {
+      if (showBox) {
+        svgText += `<rect x="${d.x1}" y="${d.y1}" width="${d.x2-d.x1}" height="${d.y2-d.y1}" ` +
+                   `fill="none" stroke="${color}" stroke-width="${strokeW}" />`;
+        svgText += `<text x="${d.x1}" y="${Math.max(d.y1-2, 14)}" fill="${color}" ` +
+                   `font-size="${Math.max(10, Math.min(w,h)/40)}" ` +
+                   `font-family="monospace">cls=${d.classId} ${(d.confidence*100).toFixed(0)}%</text>`;
+      }
+      if (showKpts && d.keypoints && d.keypoints.length) {
+        const stride = d.keypoints.length % 3 === 0 ? 3 : 2;
+        for (let i = 0; i + 1 < d.keypoints.length; i += stride) {
+          const kx = d.keypoints[i], ky = d.keypoints[i+1];
+          svgText += `<circle cx="${kx}" cy="${ky}" r="${kptR}" fill="${color}" stroke="white" stroke-width="${strokeW/2}" />`;
+        }
+      }
+    };
+    dets.forEach(d => drawDet(d, '#22d35a'));
+    if (showTruth) truth.forEach(d => drawDet(d, '#ff5e5e'));
+    svg.innerHTML = svgText;
+  };
+
+  document.querySelectorAll('.sample-card').forEach(card => {
+    const img = card.querySelector('img');
+    if (img.complete) render(card);
+  });
+})();
+</script>
+</body>
+</html>
