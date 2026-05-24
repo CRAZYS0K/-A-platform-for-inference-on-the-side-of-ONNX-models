@@ -70,9 +70,6 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
         registerHealthIndicator: true
-        # 4xx are user/session problems, not backend faults — don't count them
-        # toward the failure rate, otherwise an expired token can trip the breaker
-        # for the whole UI.
         ignoreExceptions:
           - org.springframework.web.client.HttpClientErrorException
           - org.springframework.security.oauth2.client.ClientAuthorizationException

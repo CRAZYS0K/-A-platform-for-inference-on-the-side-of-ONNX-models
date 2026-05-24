@@ -31,9 +31,6 @@ public class EmailNotifier {
             mailSender.send(message);
             log.info("Email sent to {} ({})", to, subject);
         } catch (Exception e) {
-            // Не пробрасываем дальше: Kafka-консьюмер иначе уйдёт в бесконечный
-            // retry для постоянных ошибок (неверный адрес). Логируем со stack trace
-            // на ERROR — это deliberate degradation, не молчаливое проглатывание.
             log.error("Failed to send email to {} (subject={})", to, subject, e);
         }
     }

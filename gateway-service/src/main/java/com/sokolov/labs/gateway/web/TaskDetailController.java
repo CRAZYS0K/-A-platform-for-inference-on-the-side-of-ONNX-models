@@ -66,7 +66,6 @@ public class TaskDetailController {
     @GetMapping("/images/{*path}")
     @ResponseBody
     public ResponseEntity<byte[]> image(@PathVariable UUID id, @PathVariable String path) {
-        // {*path} captures the rest with a leading slash, fully URL-decoded by Spring.
         String relative = path.startsWith("/") ? path.substring(1) : path;
         if (relative.isBlank() || relative.contains("..")) {
             return ResponseEntity.badRequest().build();

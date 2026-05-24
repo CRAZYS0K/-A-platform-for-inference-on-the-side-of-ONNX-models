@@ -136,9 +136,6 @@ public class BackendClient {
 
     @CircuitBreaker(name = CB_NAME)
     public ImagePayload taskImage(UUID id, String relativePath) {
-        // Use UriBuilder.pathSegment(...) so each segment is URL-encoded exactly
-        // once. Doing the encoding manually + passing to .uri(String) caused the
-        // template processor to re-encode percent signs, producing %2520/%252520.
         String[] segments = relativePath.split("/");
         var resp = restClient.get()
                 .uri(b -> b.path("/api/tasks/{id}/images").pathSegment(segments).build(id))

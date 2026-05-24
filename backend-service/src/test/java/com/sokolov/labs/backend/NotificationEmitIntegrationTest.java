@@ -78,11 +78,6 @@ class NotificationEmitIntegrationTest extends IntegrationTestBase {
         assertThat(evt.status()).isEqualTo(TaskStatus.SUCCEEDED);
     }
 
-    /**
-     * Тестовый Kafka-контейнер shared между тестами — в топике остаются события
-     * от предыдущих прогонов. Поэтому читаем с начала и фильтруем по предикату,
-     * пока не найдём событие текущего теста или не упадёт таймаут.
-     */
     private <T> T consumeMatching(String topic, Class<T> type, String groupId,
                                   java.util.function.Predicate<T> match) {
         Map<String, Object> props = new HashMap<>(KafkaTestUtils.consumerProps(

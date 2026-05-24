@@ -1,15 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <!-- Spring Boot bumped to 3.5.14: все ранее принятые CVE закрыты patch-версиями
-         (Tomcat, Netty, Spring Framework, Spring Security, Thymeleaf).
-         Файл оставлен пустым — новые CVE будут видны в CI и должны явно
-         задокументироваться здесь с обоснованием перед добавлением.
-
-         Пример:
-         <suppress>
-             <notes><![CDATA[ False positive: not affected for our usage ]]></notes>
-             <packageUrl regex="true">^pkg:maven/org\.example/.*$</packageUrl>
-             <cve>CVE-1234-5678</cve>
-         </suppress>
-    -->
 </suppressions>
