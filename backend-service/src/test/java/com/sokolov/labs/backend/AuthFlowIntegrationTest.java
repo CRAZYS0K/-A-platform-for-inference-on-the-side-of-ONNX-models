@@ -60,8 +60,7 @@ class AuthFlowIntegrationTest extends IntegrationTestBase {
         assertThat(response.getBody().get("email")).isEqualTo("alice@example.com");
         assertThat(response.getBody().get("displayName")).isEqualTo("alice");
 
-        long userCount = userAccountRepository.count();
-        assertThat(userCount).isEqualTo(1);
+        assertThat(userAccountRepository.findByEmail("alice@example.com")).isPresent();
     }
 
     private String obtainAccessToken(String username, String password) {

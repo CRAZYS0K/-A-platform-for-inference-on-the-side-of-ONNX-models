@@ -66,8 +66,9 @@ class NotificationEmitIntegrationTest extends IntegrationTestBase {
                 new InferenceStatusMessage(taskId, user.getId(), TaskStatus.SUCCEEDED,
                         100, "ok", "results/foo", 0.88, Instant.now()));
 
-        NotificationEvent evt = consumeOne(KafkaTopics.INFERENCE_NOTIFICATIONS,
-                NotificationEvent.class, "test-notif-" + UUID.randomUUID());
+        NotificationEvent evt = consumeMatching(KafkaTopics.INFERENCE_NOTIFICATIONS,
+                NotificationEvent.class, "test-notif-" + UUID.randomUUID(),
+                e -> taskId.equals(e.taskId()));
         assertThat(evt.taskId()).isEqualTo(taskId);
         assertThat(evt.email()).isEqualTo("ivan@example.com");
         assertThat(evt.emailEnabled()).isTrue();
@@ -77,7 +78,13 @@ class NotificationEmitIntegrationTest extends IntegrationTestBase {
         assertThat(evt.status()).isEqualTo(TaskStatus.SUCCEEDED);
     }
 
-    private <T> T consumeOne(String topic, Class<T> type, String groupId) {
+    /**
+     * Тестовый Kafka-контейнер shared между тестами — в топике остаются события
+     * от предыдущих прогонов. Поэтому читаем с начала и фильтруем по предикату,
+     * пока не найдём событие текущего теста или не упадёт таймаут.
+     */
+    private <T> T consumeMatching(String topic, Class<T> type, String groupId,
+                                  java.util.function.Predicate<T> match) {
         Map<String, Object> props = new HashMap<>(KafkaTestUtils.consumerProps(
                 KAFKA.getBootstrapServers(), groupId, "true"));
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -87,11 +94,18 @@ class NotificationEmitIntegrationTest extends IntegrationTestBase {
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, type.getName());
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
+        long deadline = System.currentTimeMillis() + Duration.ofSeconds(30).toMillis();
         try (var consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<String, T>(props)) {
             consumer.subscribe(java.util.List.of(topic));
-            var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(15), 1);
-            assertThat(records.count()).isGreaterThan(0);
-            return records.iterator().next().value();
+            while (System.currentTimeMillis() < deadline) {
+                var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(5), 1);
+                for (var rec : records) {
+                    if (match.test(rec.value())) {
+                        return rec.value();
+                    }
+                }
+            }
+            throw new AssertionError("No matching event in " + topic + " within timeout");
         }
     }
 }
