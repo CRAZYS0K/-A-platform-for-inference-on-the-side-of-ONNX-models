@@ -8,6 +8,4 @@
 *.log
 .env
 .env.*
-.vscode/
-.claude/
 docker/data/
