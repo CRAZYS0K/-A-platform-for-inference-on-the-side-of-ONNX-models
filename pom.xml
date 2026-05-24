@@ -164,6 +164,10 @@
                             <suppressionFile>${maven.multiModuleProjectDirectory}/owasp-suppressions.xml</suppressionFile>
                         </suppressionFiles>
                         <nvdValidForHours>48</nvdValidForHours>
+                        <!-- OSS Index (Sonatype) — вторичная база, требует регистрации
+                             и API key. Анонимный доступ возвращает 401 и валит билд.
+                             Основная база NVD у нас работает, этого достаточно. -->
+                        <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
                     </configuration>
                 </plugin>
             </plugins>
