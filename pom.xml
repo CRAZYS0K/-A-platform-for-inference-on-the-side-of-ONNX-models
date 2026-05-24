@@ -43,6 +43,12 @@
         <bucket4j.version>8.10.1</bucket4j.version>
         <springdoc.version>2.8.0</springdoc.version>
         <logstash-encoder.version>9.0</logstash-encoder.version>
+
+        <!-- Переопределяем транзитивные Tomcat и Netty из Spring Boot BOM,
+             чтобы подтянуть свежие patch-версии с фиксами CVE 2026 года
+             (Spring Boot 3.5.14 пока возит 10.1.54 и 4.1.132). -->
+        <tomcat.version>10.1.55</tomcat.version>
+        <netty.version>4.1.134.Final</netty.version>
     </properties>
 
     <dependencyManagement>
