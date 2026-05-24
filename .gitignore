@@ -5,10 +5,7 @@ target/
 .kotlin
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -44,9 +41,9 @@ build/
 ### Local env files ###
 docker/.env
 .env
-.env.local/encodings.xml
-.idea/encodings.xml
+.env.local
 
 ### Report artifact (local-only) ###
 docs/report.pdf
 docs/report.html
+docs/report.docx
