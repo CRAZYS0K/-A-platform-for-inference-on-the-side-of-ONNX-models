@@ -46,3 +46,7 @@ docker/.env
 .env
 .env.local/encodings.xml
 .idea/encodings.xml
+
+### Report artifact (local-only) ###
+docs/report.pdf
+docs/report.html

@@ -1,7 +1,6 @@
 package com.sokolov.labs.gateway.web;
 
 import com.sokolov.labs.gateway.backend.BackendClient;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
@@ -65,16 +63,11 @@ public class TaskDetailController {
                 .body(body);
     }
 
-    @GetMapping("/images/**")
+    @GetMapping("/images/{*path}")
     @ResponseBody
-    public ResponseEntity<byte[]> image(@PathVariable UUID id, HttpServletRequest request) {
-        String fullPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-        String marker = "/images/";
-        int idx = fullPath.indexOf(marker);
-        if (idx < 0) {
-            return ResponseEntity.notFound().build();
-        }
-        String relative = fullPath.substring(idx + marker.length());
+    public ResponseEntity<byte[]> image(@PathVariable UUID id, @PathVariable String path) {
+        // {*path} captures the rest with a leading slash, fully URL-decoded by Spring.
+        String relative = path.startsWith("/") ? path.substring(1) : path;
         if (relative.isBlank() || relative.contains("..")) {
             return ResponseEntity.badRequest().build();
         }

@@ -8,7 +8,6 @@ import com.sokolov.labs.backend.service.UserAccountService;
 import com.sokolov.labs.backend.storage.ObjectStorage;
 import com.sokolov.labs.shared.dto.TaskResultsPayload;
 import com.sokolov.labs.shared.dto.TaskStatus;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.core.io.InputStreamResource;
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -167,19 +165,13 @@ public class TaskController {
         return String.format(java.util.Locale.ROOT, "%.6f", v);
     }
 
-    @GetMapping("/{id}/images/**")
+    @GetMapping("/{id}/images/{*path}")
     public ResponseEntity<InputStreamResource> image(@AuthenticationPrincipal Jwt jwt,
                                                      @PathVariable UUID id,
-                                                     HttpServletRequest request) throws IOException {
+                                                     @PathVariable String path) throws IOException {
         UserAccount user = userAccountService.findOrCreate(jwt);
         taskService.get(user.getId(), id);
-        String fullPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-        String marker = "/images/";
-        int idx = fullPath.indexOf(marker);
-        if (idx < 0) {
-            return ResponseEntity.notFound().build();
-        }
-        String relative = fullPath.substring(idx + marker.length());
+        String relative = path.startsWith("/") ? path.substring(1) : path;
         if (relative.isBlank() || relative.contains("..")) {
             return ResponseEntity.badRequest().build();
         }
