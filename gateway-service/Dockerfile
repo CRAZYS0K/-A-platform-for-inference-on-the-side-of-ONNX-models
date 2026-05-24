@@ -1,11 +1,13 @@
-# JARs are built on the host via `./mvnw -DskipTests package` and packaged here.
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /src
+COPY . .
+RUN chmod +x mvnw && ./mvnw -pl gateway-service -am -B -ntp -DskipTests package
+
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 RUN useradd --system --uid 1001 --shell /usr/sbin/nologin app && chown app:app /app
 USER app
-
-ARG JAR_FILE=gateway-service/target/gateway-service-*.jar
-COPY ${JAR_FILE} /app/app.jar
+COPY --from=build /src/gateway-service/target/gateway-service-*.jar /app/app.jar
 
 EXPOSE 8080
 ENV JAVA_OPTS=""

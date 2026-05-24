@@ -1,11 +1,13 @@
-# JARs are built on the host via `./mvnw -DskipTests package` and packaged here.
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /src
+COPY . .
+RUN chmod +x mvnw && ./mvnw -pl notification-service -am -B -ntp -DskipTests package
+
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 RUN useradd --system --uid 1001 --shell /usr/sbin/nologin app && chown app:app /app
 USER app
-
-ARG JAR_FILE=notification-service/target/notification-service-*.jar
-COPY ${JAR_FILE} /app/app.jar
+COPY --from=build /src/notification-service/target/notification-service-*.jar /app/app.jar
 
 EXPOSE 8083
 ENV JAVA_OPTS=""

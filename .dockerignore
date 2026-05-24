@@ -1,11 +1,10 @@
-**/target/*
-!**/target/*.jar
+**/target/
 **/.idea/
 **/.git/
 **/.gradle/
-**/.mvn/wrapper/maven-wrapper.jar
 *.iml
 *.log
 .env
 .env.*
 docker/data/
+docs/report.*
