@@ -112,8 +112,26 @@ jobs:
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+      # NVD CVE база ~5 ГБ. Без кеша качается 30 мин с нуля, с кешем —
+      # только инкрементальная дельта (1-2 мин). Ключ зависит от даты, чтобы
+      # раз в сутки обновлялось; restore-keys позволяет переиспользовать
+      # вчерашний кеш как стартовую точку.
+      - name: Cache NVD CVE database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nvd-${{ runner.os }}-
       - name: Run OWASP Dependency-Check
-        run: ./mvnw -B -ntp -Psecurity-scan verify -DskipTests
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -n "$NVD_API_KEY" ]; then
+            ./mvnw -B -ntp -Psecurity-scan verify -DskipTests -DnvdApiKey="$NVD_API_KEY"
+          else
+            ./mvnw -B -ntp -Psecurity-scan verify -DskipTests
+          fi
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
