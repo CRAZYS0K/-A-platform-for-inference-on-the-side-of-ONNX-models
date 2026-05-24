@@ -1,76 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- Spring Boot bumped to 3.5.14: все ранее принятые CVE закрыты patch-версиями
+         (Tomcat, Netty, Spring Framework, Spring Security, Thymeleaf).
+         Файл оставлен пустым — новые CVE будут видны в CI и должны явно
+         задокументироваться здесь с обоснованием перед добавлением.
 
-    <!--
-        Все CVE ниже относятся к транзитивным зависимостям Spring Boot 3.5.6
-        (Spring Framework, Spring Security, Tomcat, Netty, Thymeleaf). На момент
-        работы над курсовым проектом эти CVE не имеют patch-версий, доступных без
-        мажорного апгрейда Spring Boot. Учебный проект не имеет production-
-        экспозиции, поэтому риски приняты. Запись здесь — явный аудит, а не сокрытие:
-        полный список уязвимостей остаётся в dependency-check-report.html.
-        Upgrade-путь: bump Spring Boot до ближайшего minor с патчами этих CVE.
+         Пример:
+         <suppress>
+             <notes><![CDATA[ False positive: not affected for our usage ]]></notes>
+             <packageUrl regex="true">^pkg:maven/org\.example/.*$</packageUrl>
+             <cve>CVE-1234-5678</cve>
+         </suppress>
     -->
-
-    <!-- Netty transport (HTTP/2, codec issues) -->
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot upgrade]]></notes>
-        <cve>CVE-2026-42581</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot upgrade]]></notes>
-        <cve>CVE-2026-42584</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot upgrade]]></notes>
-        <cve>CVE-2026-42579</cve>
-    </suppress>
-
-    <!-- Spring Framework / Spring Boot starters -->
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot upgrade]]></notes>
-        <cve>CVE-2026-40971</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot upgrade]]></notes>
-        <cve>CVE-2026-40974</cve>
-    </suppress>
-
-    <!-- Spring Security -->
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Security upgrade]]></notes>
-        <cve>CVE-2026-22732</cve>
-    </suppress>
-
-    <!-- Thymeleaf -->
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Thymeleaf upgrade]]></notes>
-        <cve>CVE-2026-40477</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Thymeleaf upgrade]]></notes>
-        <cve>CVE-2026-40478</cve>
-    </suppress>
-
-    <!-- Embedded Tomcat -->
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot (Tomcat) upgrade]]></notes>
-        <cve>CVE-2026-41293</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot (Tomcat) upgrade]]></notes>
-        <cve>CVE-2025-66614</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot (Tomcat) upgrade]]></notes>
-        <cve>CVE-2026-29145</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot (Tomcat) upgrade]]></notes>
-        <cve>CVE-2026-43512</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[Accepted: tracked for Spring Boot (Tomcat) upgrade]]></notes>
-        <cve>CVE-2026-43515</cve>
-    </suppress>
-
 </suppressions>
