@@ -96,7 +96,10 @@ services:
       KC_HTTP_RELATIVE_PATH: "/auth"
       KC_PROXY_HEADERS: xforwarded
     volumes:
-      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      # Монтируем каталог целиком, а не один файл: одиночные file-bind-mount'ы
+      # рассыпаются после рестарта Docker Desktop на Windows/WSL2 (mount file→dir).
+      # Keycloak с --import-realm импортирует все *.json из этого каталога.
+      - ./keycloak:/opt/keycloak/data/import:ro
       - keycloak-data:/opt/keycloak/data
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\nhost: localhost\\n' >&3 && cat <&3 | grep -q '200 OK'"]
