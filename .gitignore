@@ -4,6 +4,9 @@ target/
 !**/src/test/**/target/
 .kotlin
 
+### Claude Code (local agent settings) ###
+.claude/
+
 ### IntelliJ IDEA ###
 .idea/
 *.iws
