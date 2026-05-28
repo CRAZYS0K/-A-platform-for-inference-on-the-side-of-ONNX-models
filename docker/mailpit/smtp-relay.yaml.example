@@ -1,0 +1,47 @@
+# Конфиг ретрансляции (relay) Mailpit на боевой SMTP.
+# С флагом --smtp-relay-all Mailpit ловит письмо в свой веб-UI И пересылает
+# копию наружу через этот SMTP — тогда письма реально доходят до адресата.
+#
+# КАК ВКЛЮЧИТЬ:
+#   1) скопируй этот файл рядом под именем  smtp-relay.yaml
+#   2) подставь свой адрес и «пароль приложения» (см. ниже)
+#   3) docker compose -f docker/docker-compose.yml up -d mailpit
+#
+# smtp-relay.yaml содержит секреты и в git НЕ коммитится (он в .gitignore).
+#
+# ВАЖНО: password — это НЕ обычный пароль от почты, а отдельный «пароль приложения»
+# (app password). Обычный пароль SMTP-серверы не принимают.
+#   Gmail:   myaccount.google.com → Безопасность → включить 2FA → «Пароли приложений»
+#   Яндекс:  id.yandex.ru → Безопасность → «Пароли приложений» → Почта (SMTP)
+#   mail.ru: account.mail.ru → Безопасность → «Пароли для внешних приложений» → Почта
+
+# ─────────── Вариант Gmail ───────────
+host: smtp.gmail.com
+port: 587
+starttls: true
+auth: login
+username: CHANGE_ME@gmail.com
+password: CHANGE_ME_APP_PASSWORD
+# Gmail/Яндекс отклоняют письма с «чужим» From (по умолчанию onnxi@localhost),
+# поэтому подменяем отправителя на свой адрес:
+override-from: CHANGE_ME@gmail.com
+
+# ─────────── Вариант Яндекс ───────────
+# (закомментируй блок Gmail выше и раскомментируй этот)
+# host: smtp.yandex.ru
+# port: 465
+# tls: true
+# auth: login
+# username: CHANGE_ME@yandex.ru
+# password: CHANGE_ME_APP_PASSWORD
+# override-from: CHANGE_ME@yandex.ru
+
+# ─────────── Вариант mail.ru ───────────
+# (работает и для @bk.ru / @inbox.ru / @list.ru)
+# host: smtp.mail.ru
+# port: 465
+# tls: true
+# auth: login
+# username: CHANGE_ME@mail.ru
+# password: CHANGE_ME_APP_PASSWORD
+# override-from: CHANGE_ME@mail.ru

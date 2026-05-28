@@ -108,9 +108,21 @@ services:
       retries: 10
     networks: [onnxi-net]
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
+  # Mailpit — SMTP-перехватчик для разработки (замена Mailhog).
+  # Принимает письма на :1025 и показывает их в веб-интерфейсе на :8025.
+  # С relay-конфигом + --smtp-relay-all дополнительно ПЕРЕСЫЛАЕТ письма на боевой
+  # SMTP (Gmail/Яндекс) — тогда они реально доходят до адресата.
+  # Каталог монтируем целиком (одиночный file-mount нестабилен на Windows/WSL2).
+  # docker/mailpit/smtp-relay.yaml содержит секреты и в git НЕ коммитится
+  # (шаблон — smtp-relay.yaml.example). Без него relay просто не активируется.
+  mailpit:
+    image: axllent/mailpit:latest
     restart: unless-stopped
+    command: ["--smtp-relay-config=/conf/smtp-relay.yaml", "--smtp-relay-all"]
+    volumes:
+      - ./mailpit:/conf:ro
+    ports:
+      - "8025:8025"   # веб-интерфейс: http://localhost:8025
     networks: [onnxi-net]
 
   # ─────────────── Observability ───────────────
@@ -216,11 +228,13 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_HOST: mailpit
       SPRING_MAIL_PORT: "1025"
     depends_on:
       kafka:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks: [onnxi-net]
 
   # ─────────────── Reverse proxy ───────────────

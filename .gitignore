@@ -40,6 +40,9 @@ docker/.env
 .env
 .env.local
 
+### Mailpit SMTP relay (secrets) ###
+docker/mailpit/smtp-relay.yaml
+
 ### Report artifact (local-only) ###
 docs/report.pdf
 docs/report.html
